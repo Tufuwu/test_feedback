@@ -1,4 +1,4 @@
-name: Python package
+name: Python application
 
 on:
   push:
@@ -11,40 +11,65 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [2.7, 3.4, 3.5, 3.6, 3.7, 3.8, pypy2, pypy3]
-        include:
-          - python-version: 3.5
-            env:
-              TOXENV: py27-cover,py35-cover,coverage
-          - python-version: 3.5
-            env:
-              TOXENV: docs
-          - python-version: 2.7
-            env:
-              TOXENV: py27-pyramid14
-          - python-version: 3.5
-            env:
-              TOXENV: py35-pyramid19
+        python-version: [3.7]
+
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools
-        pip install tox
+        pip install flake8 Flask==1.1.1
+        pip install -e .
+        flake8 .
+
     - name: Run tests
-      env:
-        TOXENV: ${{ matrix.env.TOXENV }}
-      run: tox
-    - name: Cache pip
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      run: |
+        cd tests/example_app
+        export FLASK_APP=example.app
+
+        ls -laR example/static/ | wc -l \
+        | grep -q "26" \
+        && (echo "File count before compiling test: pass" && exit 0) \
+        || (echo "File count before compiling test: fail" && exit 1)
+
+        flask digest compile \
+        && ls -laR example/static/ | wc -l \
+        | grep -q "36" \
+        && (echo "File count after compiling test: pass" && exit 0) \
+        || (echo "File count after compiling test: fail" && exit 1)
+
+        grep -q "js/modules/hello.js" example/static/cache_manifest.json \
+        && (echo "Cache manifest has nested file test: pass" && exit 0) \
+        || (echo "Cache manifest has nested file test: fail" && exit 1)
+
+        grep -q "js/modules/hello-d41d8cd98f00b204e9800998ecf8427e.js" example/static/cache_manifest.json \
+        && (echo "Cache manifest has digested file test: pass" && exit 0) \
+        || (echo "Cache manifest has digested file test: fail" && exit 1)
+
+        flask run & \
+        sleep 5 \
+        && curl http://localhost:5000 \
+        | grep -q 'https://cdn.example.com/static/css/app-d41d8cd98f00b204e9800998ecf8427e.css' \
+        && (echo 'Stylesheet is md5 tagged test: pass' && exit 0) \
+        || (echo 'Stylesheet is md5 tagged test: fail' && exit 1)
+
+        flask digest clean \
+        && ls -laR example/static/ | wc -l \
+        | grep -q "26" \
+        && (echo "File count after cleaning test: pass" && exit 0) \
+        || (echo "File count after cleaning test: fail" && exit 1)
+
+        flask run -p 5001 & \
+        sleep 5 \
+        && curl http://localhost:5001 \
+        | grep -q 'https://cdn.example.com/static/js/app.js' \
+        && (echo 'Javascript is not md5 tagged test: pass' && exit 0) \
+        || (echo 'Javascript is not md5 tagged test: fail' && exit 1)
