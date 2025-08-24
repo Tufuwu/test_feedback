@@ -7,14 +7,15 @@ on:
   pull_request:
     branches:
       - main
+  release:
+    types: [created]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9"]
-
+        python-version: [3.8, 3.9, 3.10]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -22,17 +23,26 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: |
-        pip install poetry
-        poetry install -v
-    - name: Lint with flake8
-      run: |
-        poetry run flake8 example/
-        poetry run flake8 tests/
-    - name: Lint with black
-      run: |
-        poetry run black --check example/
-        poetry run black --check tests/
+      run: pip install -e .[testing]
     - name: Test with pytest
+      run: pytest tests
+
+  deploy:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: pip install -e .[testing]
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: vmalloc
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        poetry run pytest
+        pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
