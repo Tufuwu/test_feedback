@@ -10,20 +10,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.6", "3.9", "pypy3"]
+        python-version: [3.6, 3.7, 3.8, 3.9, 3.10]
+        os: [ubuntu-22.04]
+        arch: [amd64, ppc64le]
+        include:
+          - env: WITHOUT_EXTENSION=0
+          - env: WITHOUT_EXTENSION=1
+
     steps:
-    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
+
+    - name: Check out repository
+      uses: actions/checkout@v2
+
     - name: Install dependencies
       run: |
-        pip install -r requirements-test.txt
+        pip install coveralls pytest
+        python setup.py develop
+
     - name: Run tests
-      run: |
-        python -m unittest discover -s tests
-        coverage run run_tests.py && coverage report -m
+      run: coverage run --source=mwparserfromhell -m pytest
+
+    - name: Upload coverage to Coveralls
+      if: success()
+      run: coveralls
