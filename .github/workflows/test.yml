@@ -10,21 +10,10 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        include:
-          - python-version: 3.9
-            arch: amd64
-          - python-version: 3.8
-            arch: amd64
-          - python-version: 3.7
-            arch: arm64
-          - python-version: 3.7
-            arch: amd64
-          - python-version: pypy-3.7
-            arch: amd64
-
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-22.04' || 'ubuntu-latest' }}
+        python-version: ['3.7', '3.8']
 
     steps:
     - uses: actions/checkout@v2
@@ -36,8 +25,14 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install mock
+        sudo apt-get update -qq
+        sudo apt-get install -qq libhdf5-serial-dev
+        python -m pip install --upgrade pip setuptools wheel virtualenv
+        pip install tox tox-travis codecov
 
-    - name: Run tests
-      run: python -m unittest discover -p *_test.py
+    - name: Run tests with tox
+      run: tox
+
+    - name: Upload coverage to Codecov
+      if: success()
+      uses: codecov/codecov-action@v2
