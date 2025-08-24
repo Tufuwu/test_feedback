@@ -1,66 +1,89 @@
-#!/usr/bin/env python
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013-2020, NeXpy Development Team.
+##############################################################################
 #
-# Distributed under the terms of the Modified BSD License.
+# Copyright (c) 2008-2013 Agendaless Consulting and Contributors.
+# All Rights Reserved.
 #
-# The full license is in the file COPYING, distributed with this software.
-#-----------------------------------------------------------------------------
+# This software is subject to the provisions of the BSD-like license at
+# http://www.repoze.org/LICENSE.txt.  A copy of the license should accompany
+# this distribution.  THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL
+# EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND
+# FITNESS FOR A PARTICULAR PURPOSE
+#
+##############################################################################
 
-from setuptools import setup, find_packages, Extension
+from setuptools import find_packages, setup
 
-import os, sys
-import versioneer
 
-# pull in some definitions from the package's __init__.py file
-sys.path.insert(0, os.path.join('src', ))
-import nexpy
-import nexpy.requires
+def readfile(name):
+    with open(name) as f:
+        return f.read()
 
-verbose=1
 
-setup (name =  nexpy.__package_name__,        # NeXpy
-       version=versioneer.get_version(),
-       cmdclass=versioneer.get_cmdclass(),
-       license = nexpy.__license__,
-       description = nexpy.__description__,
-       long_description = nexpy.__long_description__,
-       author=nexpy.__author_name__,
-       author_email=nexpy.__author_email__,
-       url=nexpy.__url__,
-       download_url=nexpy.__download_url__,
-       platforms='any',
-       python_requires='>=3.7',
-       install_requires = nexpy.requires.pkg_requirements,
-       extras_require = nexpy.requires.extra_requirements,
-       package_dir = {'': 'src'},
-       packages = find_packages('src'),
-       include_package_data = True,
-       package_data = {
-                       'nexpy.gui': ['resources/icon/*.svg',
-                                     'resources/icon/*.png',
-                                     'resources/*.png',
-                                    ],
-                       'nexpy.definitions': ['base_classes/*.xml'],
-                       'nexpy': [
-                           'examples/*.*',
-                           'examples/*/*.*',
-                           'examples/*/*/*.*',
-                       ],
-                   },
-       entry_points={
-            # create & install scripts in <python>/bin
-            'gui_scripts': ['nexpy = nexpy.nexpygui:main',],
-       },
-       classifiers= ['Development Status :: 4 - Beta',
-                     'Intended Audience :: Developers',
-                     'Intended Audience :: Science/Research',
-                     'License :: OSI Approved :: BSD License',
-                     'Programming Language :: Python',
-                     'Programming Language :: Python :: 3',
-                     'Programming Language :: Python :: 3.7',
-                     'Programming Language :: Python :: 3.8',
-                     'Programming Language :: Python :: 3.9',
-                     'Topic :: Scientific/Engineering',
-                     'Topic :: Scientific/Engineering :: Visualization'],
-      )
+README = readfile("README.rst")
+CHANGES = readfile("CHANGES.txt")
+
+install_requires = [
+    "pyramid>=1.4",
+    "pyramid_mako>=0.3.1",  # lazy configuration loading works
+    "repoze.lru",
+    "Pygments",
+]
+
+extra_requires = [
+    "ipaddress",
+]
+
+testing_extras = [
+    "WebTest",
+    "nose",
+    "coverage",
+]
+
+docs_extras = [
+    "Sphinx >= 1.7.5",
+    "pylons-sphinx-themes >= 0.3",
+]
+
+setup(
+    name="pyramid_debugtoolbar",
+    version="4.6.1",
+    description=(
+        "A package which provides an interactive HTML debugger "
+        "for Pyramid application development"
+    ),
+    long_description=README + "\n\n" + CHANGES,
+    classifiers=[
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Framework :: Pyramid",
+        "Topic :: Internet :: WWW/HTTP :: WSGI",
+        "License :: Repoze Public License",
+    ],
+    keywords="wsgi pylons pyramid transaction",
+    author=(
+        "Chris McDonough, Michael Merickel, Casey Duncan, " "Blaise Laflamme"
+    ),
+    author_email="pylons-discuss@googlegroups.com",
+    url="https://docs.pylonsproject.org/projects/pyramid-debugtoolbar/en/latest/",  # noqa E501
+    license="BSD",
+    packages=find_packages("src", exclude=["tests"]),
+    package_dir={"": "src"},
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=install_requires,
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
+    extras_require={
+        ':python_version<"3.3"': extra_requires,
+        "testing": testing_extras,
+        "docs": docs_extras,
+    },
+    test_suite="tests",
+)
