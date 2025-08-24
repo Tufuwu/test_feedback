@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: [3.9, 3.8, 3.7]
 
     steps:
     - uses: actions/checkout@v2
@@ -25,18 +25,16 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install pyte coverage mock
-        python setup.py install
+        sudo apt-get update
+        sudo apt-get install -y graphviz
+        pip install .[test] codecov
+
+    - name: Make test script executable
+      run: chmod +x ./run-tests.py
 
     - name: Run tests
-      run: nosetests .
+      run: ./run-tests.py
 
-  notify:
-    if: always()
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Send notification
-      uses: rtCamp/action-slack-notify@v2
-      with:
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        message: "Build completed"
+    - name: Upload coverage to Codecov
+      if: success()
+      run: codecov
