@@ -1,4 +1,7 @@
-google-apputils==0.4.2
-numpy==1.24.2
-terminaltables==3.1.0
-ortools===9.7.2996
+Django (>=1.7)
+pytz
+six
+typing; python_version < "3.5"
+infi.clickhouse-orm
+celery
+statsd
