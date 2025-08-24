@@ -1,4 +1,4 @@
-name: Python package
+name: Python application
 
 on:
   push:
@@ -11,36 +11,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: ["3.8", "3.9"]
+        python-version: [3.7.x]
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y graphviz
-        pip install Sphinx recommonmark pep8 coverage coveralls numpy matplotlib
-
+      run: python3 -m pip install -U -r dev-requirements.txt
     - name: Run tests
-      run: |
-        python -Wall setup.py try
-        python setup.py install
-        python -Wall setup.py test
-        COVERAGE=1 coverage run test/runtest.py
-        python run.py --doctest
-        python run.py --html
-
-    - name: Check code style
-      run: pep8 --exclude=asizeof.py,metadata.py,bottle*.py --max-line-length=80 pympler
-
-    - name: Upload coverage to Coveralls
-      if: success()
-      run: coveralls
+      run: python3 -m coverage run --branch -m pytest tests/
+    - name: Upload coverage to Codecov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: bash <(curl -s https://codecov.io/bash)
