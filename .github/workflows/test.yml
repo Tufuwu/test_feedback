@@ -9,25 +9,42 @@ on:
       - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.8"]  # Updated to a version available on setup-python
+        os: [ubuntu-22.04]
+        python-version: [3.5, 3.7, 3.9]
+        h5py-version: ["==2.6", "==2.10", "==3.0", "==3.1"]
+        exclude:
+          - python-version: 3.5
+            h5py-version: "==3.0"
+          - python-version: 3.5
+            h5py-version: "==3.1"
+        include:
+          - os: ubuntu-22.04
+            python-version: 3.9
+            h5py-version: "==2.10"
+            arch: ppc64le
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
-      run: pip install tox coveralls
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc libhdf5-serial-dev libblas-dev liblapack-dev libatlas-base-dev libquadmath0
+        python -m pip install --upgrade pip
+        pip install -U numpy Cython
+        pip install h5py${{ matrix.h5py-version }}
+        pip install -r requirements_tests.txt
+        pip install .
+        pip install -e examples/example_hdf5storage_marshaller_plugin
+
     - name: Run tests
-      run: tox
-    - name: Upload coverage to Coveralls
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      run: coveralls
+      run: pytest
