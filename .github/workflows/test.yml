@@ -4,33 +4,16 @@ on:
   push:
     branches:
       - main
-      - dev
   pull_request:
     branches:
       - main
-      - dev
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10, pypy-3.8]
-        test-suite: 
-          - adddelete
-          - compartmentedmodel
-          - networkdynamics
-          - sir
-          - sirs
-          - sir_fixedrecovery
-          - sis
-          - sis_fixedrecovery
-          - seir
-          - stochasticrates
-          - monitor
-          - generators
-          - loci
-          - percolate
+        python-version: [3.8, 3.9, 3.10]
 
     steps:
     - uses: actions/checkout@v2
@@ -39,13 +22,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install coveralls
-    - name: Install package
-      run: python setup.py install
-    - name: Run tests
-      run: coverage run --include './epydemic/*' -m nose test/test_${{ matrix.test-suite }}.py
-    - name: Coveralls
-      if: success()
-      run: coveralls
+      run: pip install -r dev-requirements.txt
+    - name: Lint with flake8
+      run: flake8 sendgrid_backend/
+    - name: Check import sorting with isort
+      run: isort -c ./
+    - name: Check code format with black
+      run: black --check ./
+    - name: Type check with mypy
+      run: mypy sendgrid_backend/
+    - name: Test with tox
+      run: tox
