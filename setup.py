@@ -1,52 +1,38 @@
-#!/usr/bin/env python
-
-from setuptools import find_packages, setup
-
-
-# Get version without importing, which avoids dependency issues
-def get_version():
-    import re
-
-    with open("chardet/version.py") as version_file:
-        return re.search(
-            r"""__version__\s+=\s+(['"])(?P<version>.+?)\1""", version_file.read()
-        ).group("version")
+import os
+from setuptools import setup, find_packages
 
 
-def readme():
-    with open("README.rst") as f:
-        return f.read()
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 setup(
-    name="chardet",
-    version=get_version(),
-    description="Universal encoding detector for Python 2 and 3",
-    long_description=readme(),
-    author="Mark Pilgrim",
-    author_email="mark@diveintomark.org",
-    maintainer="Daniel Blanchard",
-    maintainer_email="dan.blanchard@gmail.com",
-    url="https://github.com/chardet/chardet",
-    license="LGPL",
-    keywords=["encoding", "i18n", "xml"],
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: Text Processing :: Linguistic",
+    name='click-man',
+    version='0.4.2',
+    url='https://github.com/click-contrib/click-man',
+    license='MIT',
+    description='Generate man pages for click based CLI applications',
+    long_description=read('README.md'),
+    long_description_content_type='text/markdown',
+    author='Timo Furrer',
+    author_email='tuxtimo@gmail.com',
+    install_requires=[
+        'click',
+        'setuptools',
     ],
-    packages=find_packages(),
-    python_requires=">=3.6",
-    entry_points={"console_scripts": ["chardetect = chardet.cli.chardetect:main"]},
+    packages=find_packages(exclude=('tests', )),
+    entry_points={
+        'console_scripts': [
+            'click-man = click_man.__main__:cli',
+        ]
+    },
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+        'Topic :: Documentation',
+    ],
 )
