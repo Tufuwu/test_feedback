@@ -1,15 +1,46 @@
-*.pyc
-*~
-.cache/
-__pycache__/
-/.version
-/MANIFEST
+*.py[cod]
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+build
+dist
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+.venv
+coverage.xml
+nosetests.xml
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# Various
 /build/
 /dist/
-/doc/doctest/
-/doc/doctrees/
-/doc/html/
-/doc/latex/
-/doc/linkcheck/
-/pytest_dependency.egg-info/
-/python2_6.patch
+/cloc.xml
+/tests/.temp/
+/.idea
+/venv/
+/htmlcov/
