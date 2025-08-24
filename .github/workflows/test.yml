@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -11,46 +11,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        include:
-          - python-version: 3.7
-            env: 
-              TOXENV: pep8
-          - python-version: 3.7
-            env: 
-              TOXENV: placement
-          - python-version: pypy-3.7
-            env: 
-              TOXENV: pypy3
-          - python-version: 3.8
-            env: 
-              TOXENV: py38
-          - python-version: 3.7
-            env: 
-              TOXENV: py37
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-pytest
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-failskip
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-limit
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-prefix
+        python-version: [2.7, 3.7, 3.8, 3.9, pypy-2.7, pypy-3.7]
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Cache Hypothesis directory
+      uses: actions/cache@v3
+      with:
+        path: ~/.hypothesis
+        key: ${{ runner.os }}-hypothesis-${{ matrix.python-version }}
+        restore-keys: |
+          ${{ runner.os }}-hypothesis-
+
     - name: Install dependencies
-      run: pip install tox
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade --upgrade-strategy only-if-needed pytest pytest-catchlog
+        pip install .
+
     - name: Run tests
       env:
-        TOXENV: ${{ matrix.env.TOXENV }}
-      run: tox
+        HYPOTHESIS_STORAGE_DIRECTORY: ~/.hypothesis
+      run: |
+        pytest
