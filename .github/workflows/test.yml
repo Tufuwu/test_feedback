@@ -13,30 +13,26 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10]
+        python-version: ["3.8", "3.9"]
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install coverage vcrpy
-
-    - name: Install package
-      run: python setup.py install
-
-    - name: Run tests
+        pip install poetry
+        poetry install -v
+    - name: Lint with flake8
       run: |
-        coverage run --source=censusgeocode -m unittest
-        censusgeocode --version || echo "censusgeocode version command failed"
-        censusgeocode --csv tests/fixtures/batch.csv || echo "censusgeocode csv command failed"
-
-    - name: Report coverage
-      if: always()
-      run: coverage report
+        poetry run flake8 example/
+        poetry run flake8 tests/
+    - name: Lint with black
+      run: |
+        poetry run black --check example/
+        poetry run black --check tests/
+    - name: Test with pytest
+      run: |
+        poetry run pytest
