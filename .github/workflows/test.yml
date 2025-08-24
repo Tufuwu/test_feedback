@@ -7,39 +7,48 @@ on:
   pull_request:
     branches:
       - main
+  release:
+    types: [created]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9, pypy-2.7, pypy-3.7]
+        python-version: ['3.8', '3.9']
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache Hypothesis directory
-      uses: actions/cache@v3
-      with:
-        path: ~/.hypothesis
-        key: ${{ runner.os }}-hypothesis-${{ matrix.python-version }}
-        restore-keys: |
-          ${{ runner.os }}-hypothesis-
-
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install --upgrade --upgrade-strategy only-if-needed pytest pytest-catchlog
-        pip install .
+        python setup.py build sdist
+        pip install -r requirements-dev.txt
+    - name: Test with nosetests
+      run: nosetests --verbosity 2
 
-    - name: Run tests
-      env:
-        HYPOTHESIS_STORAGE_DIRECTORY: ~/.hypothesis
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
       run: |
-        pytest
+        python setup.py build sdist
+        pip install -r requirements-dev.txt
+    - name: Build and publish to PyPI
+      env:
+        TWINE_USERNAME: tuxtimo
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
