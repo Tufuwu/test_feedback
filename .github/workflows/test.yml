@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -10,32 +10,28 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+    - name: Set execute permission for scripts
+      run: chmod +x scripts/*.sh
 
-    - name: Install dependencies
+    - name: Run link format check
+      run: scripts/link-format-chk.sh
+
+    - name: Build table and compare
       run: |
-        python setup.py --quiet install
-        pip --quiet install -r test-requirements.txt
-
-    - name: Run tests
-      run: python setup.py --quiet test
-
-    - name: Upload coverage to Coveralls
-      if: success()
-      env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      run: |
-        pip install coveralls
-        coverage run --source circlify tests.py
-        coveralls
+        scripts/buildtable.pl >/tmp/table.mediawiki || exit 1
+        diff README.mediawiki /tmp/table.mediawiki | grep '^[<>] |' >/tmp/after.diff || true
+        if git checkout HEAD^ && scripts/buildtable.pl >/tmp/table.mediawiki 2>/dev/null; then
+          diff README.mediawiki /tmp/table.mediawiki | grep '^[<>] |' >/tmp/before.diff || true
+          newdiff=$(diff -s /tmp/before.diff /tmp/after.diff -u | grep '^+')
+          if [ -n "$newdiff" ]; then
+            echo "$newdiff"
+            exit 1
+          fi
+        else
+          echo 'Cannot build previous commit table for comparison'
+        fi
