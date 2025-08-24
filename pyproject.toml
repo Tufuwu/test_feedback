@@ -1,6 +1,4 @@
-[tool.black]
-target-version = ['py37', 'py38', 'py39', 'py310']
-
-[tool.isort]
-profile = "black"
-src_paths = ["georss_ingv_centro_nazionale_terremoti_client", "tests"]
+[build-system]
+# Minimum requirements for the build system to execute.
+requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+build-backend = "setuptools.build_meta"
