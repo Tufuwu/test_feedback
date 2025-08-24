@@ -10,33 +10,21 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
-
+        python-version: [3.8, 3.9]
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        pip install pyte coverage mock
-        python setup.py install
-
-    - name: Run tests
-      run: nosetests .
-
-  notify:
-    if: always()
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Send notification
-      uses: rtCamp/action-slack-notify@v2
-      with:
-        webhook_url: ${{ secrets.WEBHOOK_URL }}
-        message: "Build completed"
+        python -m pip install --upgrade pip
+        pip install --upgrade pytest
+        pip install --editable .
+    - name: Test with pytest
+      run: |
+        pytest
