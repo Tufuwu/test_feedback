@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -10,19 +10,31 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: ["3.8", "3.9"]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run tests
-      run: make test PYTHON=python
+        python -m pip install --upgrade pip
+        pip install doc8 sphinx
+        pip install git+https://github.com/osrf/sphinx-tabs
+        pip install sphinx_multiversion
+
+    - name: Build documentation
+      run: |
+        make html 2> stderr.log || true
+        cat stderr.log
+        doc8 --ignore D001 --ignore-path build --ignore-path source/Tutorials/Actions
+        doc8 --ignore D000 --ignore D001 --ignore-path build source/Tutorials/Actions
+        if grep -q "ERROR" stderr.log; then exit 1; fi
