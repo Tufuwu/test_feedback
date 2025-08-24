@@ -10,29 +10,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.8']
+        python-version: ['3.8', '3.9']
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        sudo apt-get update -qq
-        sudo apt-get install -qq libhdf5-serial-dev
-        python -m pip install --upgrade pip setuptools wheel virtualenv
-        pip install tox tox-travis codecov
-
-    - name: Run tests with tox
-      run: tox || true
-
-    - name: Upload coverage to Codecov
-      if: always()
-      uses: codecov/codecov-action@v2
+        pip install -U tox-travis
+        pip install -U click==8.0.4  # Add this line to pin click to a compatible version
+    - name: Run tests
+      run: tox
