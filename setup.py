@@ -1,62 +1,57 @@
 #!/usr/bin/env python
-import sys
-from distutils.core import Command
-import subprocess
-
-from setuptools import setup
-
-import defusedxml
-
-
-class PyTest(Command):
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        errno = subprocess.call([sys.executable, "tests.py"])
-        raise SystemExit(errno)
+# -*- coding: utf-8 -*-
+try:
+    from setuptools import setup
+except ImportError:
+    from ez_setup import use_setuptools
+    use_setuptools()
+    from setuptools import setup
 
 
-long_description = []
-with open("README.txt") as f:
-    long_description.append(f.read())
-with open("CHANGES.txt") as f:
-    long_description.append(f.read())
+from tastypie import __version__
 
 
 setup(
-    name="defusedxml",
-    version=defusedxml.__version__,
-    cmdclass={"test": PyTest},
-    packages=["defusedxml"],
-    author="Christian Heimes",
-    author_email="christian@python.org",
-    maintainer="Christian Heimes",
-    maintainer_email="christian@python.org",
-    url="https://github.com/tiran/defusedxml",
-    download_url="https://pypi.python.org/pypi/defusedxml",
-    keywords="xml bomb DoS",
-    platforms="all",
-    license="PSFL",
-    description="XML bomb protection for Python stdlib modules",
-    long_description="\n".join(long_description),
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: Python Software Foundation License",
-        "Natural Language :: English",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Topic :: Text Processing :: Markup :: XML",
+    name='django-tastypie',
+    version=__version__,
+    description='A flexible & capable API layer for Django.',
+    author='Daniel Lindsley',
+    author_email='daniel@toastdriven.com',
+    url='https://github.com/django-tastypie/django-tastypie',
+    long_description=open('README.rst', 'r').read(),
+    packages=[
+        'tastypie',
+        'tastypie.utils',
+        'tastypie.management',
+        'tastypie.management.commands',
+        'tastypie.migrations',
+        'tastypie.contrib',
+        'tastypie.contrib.gis',
+        'tastypie.contrib.contenttypes',
     ],
-    python_requires=">=3.6",
+    package_data={
+        'tastypie': ['templates/tastypie/*'],
+    },
+    zip_safe=False,
+    requires=[
+        'python_mimeparse(>=0.1.4, !=1.5)',
+        'dateutil(>=1.5, !=2.0)',
+    ],
+    install_requires=[
+        'python-mimeparse >= 0.1.4, != 1.5',
+        'python-dateutil >= 1.5, != 2.0',
+    ],
+    tests_require=['mock', 'PyYAML', 'lxml', 'defusedxml'],
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Environment :: Web Environment',
+        'Framework :: Django',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+        'Topic :: Utilities'
+    ],
 )
