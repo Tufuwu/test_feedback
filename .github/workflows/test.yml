@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -10,34 +10,23 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, 3.10]
-        os: [ubuntu-22.04]
-        arch: [amd64, ppc64le]
-        include:
-          - env: WITHOUT_EXTENSION=0
-          - env: WITHOUT_EXTENSION=1
+        python-version: [3.8]
 
     steps:
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-        architecture: ${{ matrix.arch }}
-
-    - name: Check out repository
-      uses: actions/checkout@v2
-
     - name: Install dependencies
-      run: |
-        pip install coveralls pytest
-        python setup.py develop
-
+      run: pip install -r requirements.txt
     - name: Run tests
-      run: coverage run --source=mwparserfromhell -m pytest
-
+      run: make test
     - name: Upload coverage to Coveralls
-      if: success()
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: coveralls
