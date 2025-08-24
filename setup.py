@@ -1,45 +1,37 @@
-#!/usr/bin/env python
+from setuptools import find_packages
 
+import setuptools
 import os
-import sys
+from io import open as io_open
 
-from setuptools import setup
+src_dir = os.path.abspath(os.path.dirname(__file__))
 
-from lora import VERSION
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
-package_name = "python-lora"
+requirements = os.path.join(src_dir, 'requirements.txt')
+with io_open(requirements, mode='r') as fd:
+    install_requires = [i.strip().split('#', 1)[0].strip()
+                        for i in fd.read().strip().split('\n')]
 
-if sys.argv[-1] == "publish":
-    os.system("python setup.py sdist")
-    os.system("twine upload -r pypi dist/%s-%s.tar.gz" % (package_name, VERSION))
-    sys.exit()
-
-if sys.argv[-1] == "tag":
-    os.system("git tag -a v{} -m 'tagging v{}'".format(VERSION, VERSION))
-    os.system("git push && git push --tags")
-    sys.exit()
-
-
-setup(
-    name="python-lora",
-    version=VERSION,
-    description="Decrypt LoRa payloads",
-    url="https://github.com/jieter/python-lora",
-    author="Jan Pieter Waagmeester",
-    author_email="jieter@jieter.nl",
-    license="MIT",
+setuptools.setup(
+    name='jill',
+    version='0.1.0',
+    author="Johnny Chen",
+    author_email="johnnychen94@hotmail.com",
+    description="Julia Installer 4 Linux(and MacOS) - Light",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/johnnychen94/jill.py",
+    packages=['jill'] + ['jill.' + i for i in find_packages('jill')],
+    provides=['jill'],
+    install_requires=install_requires,
+    python_requires=">=3.6",
+    entry_points={'console_scripts': ['jill=jill.__main__:main'], },
+    include_package_data=True,
     classifiers=[
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
-    keywords="LoRa decrypt",
-    packages=["lora"],
-    install_requires=["cryptography==3.2"],
 )
