@@ -11,11 +11,13 @@ on:
     types: [created]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10]
+        python-version: ["3.5", "3.6", "3.x"]
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,26 +25,26 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install -e .[testing]
-    - name: Test with pytest
-      run: pytest tests
+      run: pip install simplejson minimock coverage
+    - name: Run tests
+      run: make test
 
   deploy:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && github.event.action == 'created'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python 3.x
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: '3.x'
     - name: Install dependencies
-      run: pip install -e .[testing]
-    - name: Publish to PyPI
+      run: pip install simplejson minimock coverage
+    - name: Deploy to PyPI
       env:
-        TWINE_USERNAME: vmalloc
+        TWINE_USERNAME: gpodder
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         pip install twine
-        python setup.py sdist bdist_wheel
+        python setup.py sdist
         twine upload dist/*
