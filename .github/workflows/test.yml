@@ -4,18 +4,18 @@ on:
   push:
     branches:
       - main
+    tags:
+      - '*'
   pull_request:
     branches:
       - main
-  release:
-    types: [created]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.7', '3.8']
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,25 +23,26 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install numpy svgwrite scipy
-    - name: Run tests
-      run: python -m unittest discover test
+      run: pip install -r requirements.txt
+    - name: Test with pytest
+      run: pytest
 
   deploy:
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.x
+    - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: 3.8
     - name: Install dependencies
-      run: pip install build twine
-    - name: Build package
-      run: python -m build
-    - name: Publish package
+      run: pip install -r requirements.txt
+    - name: Build and publish
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: twine upload dist/*
+      run: |
+        pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload --skip-existing dist/*
