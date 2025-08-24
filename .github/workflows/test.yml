@@ -1,5 +1,4 @@
-# GitHub Actions configuration file
-name: CI
+name: Python package
 
 on:
   push:
@@ -11,40 +10,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.8, 3.9]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
     - name: Install dependencies
       run: |
-        sudo apt update
-        sudo apt install -y gettext rsync python3-sphinx python3-pyqt5 python3-venv
-
-    - name: Build translations
-      run: make all
-
-    - name: Install tox
-      run: pip install tox tox-venv
-
-    - name: Run tests
-      run: |
-        tox
-        tox -e pylint
+        python -m pip install --upgrade pip
+        pip install pyusb coverage coveralls pyserial PyYAML tqdm
+    - name: Build
+      run: python setup.py build
+    - name: Test with coverage
+      run: coverage run --source=stcgal setup.py test
+    - name: Coveralls
+      run: coveralls
