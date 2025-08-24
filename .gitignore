@@ -1,8 +1,5 @@
-*.pyc
-.*
-/svgpathtools/nonunittests
+data/
+.coverage
 build
-svgpathtools.egg-info
-!.travis.yml
-!/.gitignore
-!/.github
+dist
+__pycache__
