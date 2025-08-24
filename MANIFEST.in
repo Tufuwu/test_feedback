@@ -1,4 +1,4 @@
-include README.rst
 include LICENSE
-include tox.ini
-recursive-include tests *.py
+include *.rst
+include .flake8
+recursive-include tests *.pyi *.py

@@ -1,196 +1,135 @@
-pygelf
-======
-
-.. image:: https://github.com/keeprocking/pygelf/actions/workflows/tests.yml/badge.svg?branch=master
-   :target: https://github.com/keeprocking/pygelf/actions
-.. image:: https://coveralls.io/repos/github/keeprocking/pygelf/badge.svg?branch=master
-   :target: https://coveralls.io/github/keeprocking/pygelf?branch=master
-.. image:: https://badge.fury.io/py/pygelf.svg
-   :target: https://pypi.python.org/pypi/pygelf
-.. image:: https://img.shields.io/pypi/dm/pygelf
-   :target: https://pypi.python.org/pypi/pygelf
-
-Python logging handlers with GELF (Graylog Extended Log Format) support.
-
-Currently TCP, UDP, TLS (encrypted TCP) and HTTP logging handlers are supported.
-
-Get pygelf
 ==========
-.. code:: python
+flake8-pyi
+==========
 
-    pip install pygelf
-
-Usage
-=====
-
-.. code:: python
-
-    from pygelf import GelfTcpHandler, GelfUdpHandler, GelfTlsHandler, GelfHttpHandler, GelfHttpsHandler
-    import logging
+A plugin for Flake8 that provides specializations for
+`type hinting stub files <https://www.python.org/dev/peps/pep-0484/#stub-files>`_,
+especially interesting for linting
+`typeshed <https://github.com/python/typeshed/>`_.
 
 
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger()
-    logger.addHandler(GelfTcpHandler(host='127.0.0.1', port=9401))
-    logger.addHandler(GelfUdpHandler(host='127.0.0.1', port=9402))
-    logger.addHandler(GelfTlsHandler(host='127.0.0.1', port=9403))
-    logger.addHandler(GelfHttpHandler(host='127.0.0.1', port=9404))
-    logger.addHandler(GelfHttpsHandler(host='127.0.0.1', port=9405))
+Functionality
+-------------
 
-    logger.info('hello gelf')
+1. Adds the ``.pyi`` extension to the default value of the ``--filename``
+   command-line argument to Flake8.  This means stubs are linted by default with
+   this plugin enabled, without needing to explicitly list every file.
 
-Message structure
-=================
+2. Modifies PyFlakes runs for ``.pyi`` files to defer checking type annotation
+   expressions after the entire file has been read.  This enables support for
+   first-class forward references that stub files use.
 
-According to the GELF spec, each message has the following mandatory fields:
+3. Provides a number of ``.pyi``-specific warnings that enforce typeshed's
+   style guide.
 
-- **version**: '1.1', can be overridden when creating a logger
-- **short_message**: the log message itself
-- **timestamp**: current timestamp
-- **level**: syslog-compliant_ log level number (e.g. WARNING will be sent as 4)
-- **host**: hostname of the machine that sent the message
-- **full_message**: this field contains stack trace and is being written **ONLY** when logging an exception, e.g.
+Note: Be careful when using this plugin in the same environment as other flake8
+plugins, as they might generate errors that are inappropriate for
+``.pyi`` files (e.g., about missing docstrings). We recommend running
+``flake8-pyi`` in a dedicated environment in your CI.
 
-.. code:: python
 
-    try:
-        1/0
-    except ZeroDivisionError as e:
-        logger.exception(e)
+List of warnings
+----------------
 
-.. _syslog-compliant: https://en.wikipedia.org/wiki/Syslog#Severity_level
+This plugin reserves codes starting with **Y0**. The following warnings are
+currently emitted:
 
-In debug mode (when handler was created with debug=True option) each message contains some extra fields (which are pretty self-explanatory): 
+* Y001: Names of ``TypeVar``\ s, ``ParamSpec``\ s and ``TypeVarTuple``\ s in stubs
+  should usually start with ``_``. This makes sure you don't accidentally expose
+  names internal to the stub.
+* Y002: If test must be a simple comparison against ``sys.platform`` or
+  ``sys.version_info``. Stub files support simple conditionals to indicate
+  differences between Python versions or platforms, but type checkers only
+  understand a limited subset of Python syntax, and this warning triggers on
+  conditionals that type checkers will probably not understand.
+* Y003: Unrecognized ``sys.version_info`` check. Similar, but triggers on some
+  comparisons involving version checks.
+* Y004: Version comparison must use only major and minor version. Type checkers
+  like mypy don't know about patch versions of Python (e.g. 3.4.3 versus 3.4.4),
+  only major and minor versions (3.3 versus 3.4). Therefore, version checks in
+  stubs should only use the major and minor versions. If new functionality was
+  introduced in a patch version, pretend that it was there all along.
+* Y005: Version comparison must be against a length-n tuple.
+* Y006: Use only ``<`` and ``>=`` for version comparisons. Comparisons involving
+  ``>`` and ``<=`` may produce unintuitive results when tools do use the full
+  ``sys.version_info`` tuple.
+* Y007: Unrecognized ``sys.platform`` check. Platform checks should be simple
+  string comparisons.
+* Y008: Unrecognized platform. To prevent you from typos, we warn if you use a
+  platform name outside a small set of known platforms (e.g. ``"linux"`` and
+  ``"win32"``).
+* Y009: Empty body should contain ``...``, not ``pass``. This is just a stylistic
+  choice, but it's the one typeshed made.
+* Y010: Function body must contain only ``...``. Stub files should not contain
+  code, so function bodies should be empty.
+* Y011: All default values for typed function arguments must be ``...``. Type
+  checkers ignore the default value, so the default value is not useful
+  information in a stub file.
+* Y012: Class body must not contain ``pass``.
+* Y013: Non-empty class body must not contain ``...``.
+* Y014: All default values for arguments must be ``...``. A stronger version
+  of Y011 that includes arguments without type annotations.
+* Y015: Attribute must not have a default value other than ``...``.
+* Y016: Unions shouldn't contain duplicates, e.g. ``str | str`` is not allowed.
+* Y017: Stubs should not contain assignments with multiple targets or non-name
+  targets.
+* Y018: A private ``TypeVar`` should be used at least once in the file in which
+  it is defined.
+* Y019: Certain kinds of methods should use ``_typeshed.Self`` instead of
+  defining custom ``TypeVar``\ s for their return annotation. This check currently
+  applies for instance methods that return ``self``, class methods that return
+  an instance of ``cls``, and ``__new__`` methods.
+* Y020: Quoted annotations should never be used in stubs.
+* Y021: Docstrings should not be included in stubs.
+* Y022: Imports linting: use typing-module aliases to stdlib objects as little
+  as possible (e.g. ``builtins.list`` over ``typing.List``,
+  ``collections.Counter`` over ``typing.Counter``, etc.).
+* Y023: Where there is no detriment to backwards compatibility, import objects
+  such as ``ClassVar`` and ``NoReturn`` from ``typing`` rather than
+  ``typing_extensions``.
+* Y024: Use ``typing.NamedTuple`` instead of ``collections.namedtuple``, as it
+  allows for more precise type inference.
+* Y025: Always alias ``collections.abc.Set`` when importing it, so as to avoid
+  confusion with ``builtins.set``.
+* Y026: Type aliases should be explicitly demarcated with ``typing.TypeAlias``.
+* Y027: Same as Y022. Unlike Y022, however, the imports disallowed with this
+  error code are required if you wish to write Python 2-compatible stubs.
+  Switch this error code off in your config file if you support Python 2.
+* Y028: Always use class-based syntax for ``typing.NamedTuple``, instead of
+  assignment-based syntax.
+* Y029: It is almost always redundant to define ``__str__`` or ``__repr__`` in
+  a stub file, as the signatures are almost always identical to
+  ``object.__str__`` and ``object.__repr__``.
+* Y030: Union expressions should never have more than one ``Literal`` member,
+  as ``Literal[1] | Literal[2]`` is semantically identical to
+  ``Literal[1, 2]``.
 
-- **_file**
-- **_line**
-- **_module**
-- **_func**
-- **_logger_name**
+Many error codes enforce modern conventions, and some cannot yet be used in
+all cases:
 
-Configuration
-=============
+* Y026 is incompatible with the pytype type checker and should be turned
+  off for stubs that need to be compatible with pytype. A fix is tracked
+  `here <https://github.com/google/pytype/issues/787>`_.
+* Y027 is incompatible with Python 2 and should only be used in stubs
+  that are meant only for Python 3.
 
-Each handler has the following parameters:
+License
+-------
 
-- **host**: IP address of the GELF input
-- **port**: port of the GELF input
-- **debug** (False by default): if true, each log message will include debugging info: module name, file name, line number, method name
-- **version** ('1.1' by default): GELF protocol version, can be overridden
-- **include_extra_fields** (False by default): if true, each log message will include all the extra fields set to LogRecord
-- **json_default** (:code:`str` with exception for several :code:`datetime` objects): function that is called for objects that cannot be serialized to JSON natively by python. Default implementation is custom function that returns result of :code:`isoformat()` method for :code:`datetime.datetime`, :code:`datetime.time`, :code:`datetime.date` objects and result of :code:`str(obj)` call for other objects (which is string representation of an object with fallback to :code:`repr`)
+MIT
 
-Also, there are some handler-specific parameters.
 
-UDP:
+Authors
+-------
 
-- **chunk\_size** (1300 by default) - maximum length of the message. If log length exceeds this value, it splits into multiple chunks (see https://www.graylog.org/resources/gelf/ section "chunked GELF") with the length equals to this value. This parameter must be less than the MTU_. If the logs don't seem to be delivered, try to reduce this value.
-- **compress** (True by default) - if true, compress log messages before sending them to the server
+Originally created by `Łukasz Langa <mailto:lukasz@langa.pl>`_ and
+now maintained by
+`Jelle Zijlstra <mailto:jelle.zijlstra@gmail.com>`_,
+`Alex Waygood <mailto:alex.waygood@gmail.com>`_,
+Sebastian Rittau, Akuli, and Shantanu.
 
-.. _MTU: https://en.wikipedia.org/wiki/Maximum_transmission_unit
+See also
+--------
 
-TLS:
-
-- **validate** (False by default) - if true, validate server certificate. If server provides a certificate that doesn't exist in **ca_certs**, you won't be able to send logs over TLS
-- **ca_certs** (None by default) - path to CA bundle file. This parameter is required if **validate** is true.
-- **certfile** (None by default) - path to certificate file that will be used to identify ourselves to the remote endpoint. This is necessary when the remote server has client authentication required. If **certfile** contains the private key, it should be placed before the certificate.
-- **keyfile** (None by default) - path to the private key. If the private key is stored in **certfile** this parameter can be None.
-
-HTTP:
-
-- **compress** (True by default) - if true, compress log messages before sending them to the server
-- **path** ('/gelf' by default) - path of the HTTP input (http://docs.graylog.org/en/latest/pages/sending_data.html#gelf-via-http)
-- **timeout** (5 by default) - amount of seconds that HTTP client should wait before it discards the request if the server doesn't respond
-
-HTTPS:
-
-- **compress** (True by default) - if true, compress log messages before sending them to the server
-- **path** ('/gelf' by default) - path of the HTTP input (http://docs.graylog.org/en/latest/pages/sending_data.html#gelf-via-http)
-- **timeout** (5 by default) - amount of seconds that HTTP client should wait before it discards the request if the server doesn't respond
-- **validate** whether or not to validate the input's certificate
-- **param ca_certs** path to the CA certificate file that signed the certificate the input is using
-- **param certfile** not yet used
-- **param keyfile** not yet used
-- **param keyfile_password** not yet used
-
-Static fields
-=============
-
-If you need to include some static fields into your logs, simply pass them to the handler constructor. Each additional field should start with underscore. You can't add field '\_id'.
-
-Example:
-
-.. code:: python
-
-    handler = GelfUdpHandler(host='127.0.0.1', port=9402, _app_name='pygelf', _something=11)
-    logger.addHandler(handler)
-
-Dynamic fields
-==============
-
-If you need to include some dynamic fields into your logs, add them to record by using LoggingAdapter or logging.Filter and create handler with include_extra_fields set to True.
-All the non-trivial fields of the record will be sent to graylog2 with '\_' added before the name
-
-Example:
-
-.. code:: python
-
-    class ContextFilter(logging.Filter):
-
-        def filter(self, record):
-            record.job_id = threading.local().process_id
-            return True
-
-    logger.addFilter(ContextFilter())
-    handler = GelfUdpHandler(host='127.0.0.1', port=9402, include_extra_fields=True)
-    logger.addHandler(handler)
-
-Defining fields from environment
-================================
-
-If you need to include some fields from the environment into your logs, add them to record by using `additional_env_fields`.
-
-The following example will add an `env` field to the logs, taking its value from the environment variable `FLASK_ENV`.
-
-.. code:: python
-
-    handler = GelfTcpHandler(host='127.0.0.1', port=9402, include_extra_fields=True, additional_env_fields={'env': 'FLASK_ENV'})
-    logger.addHandler(handler)
-
-The following can also be used in defining logging from configuration files (yaml/ini):
-
-.. code:: ini
-
-    [formatters]
-    keys=standard
-
-    [formatter_standard]
-    class=logging.Formatter
-    format=%(message)s
-
-    [handlers]
-    keys=graylog
-
-    [handler_graylog]
-    class=pygelf.GelfTcpHandler
-    formatter=standard
-    args=('127.0.0.1', '12201')
-    kwargs={'include_extra_fields': True, 'debug': True, 'additional_env_fields': {'env': 'FLASK_ENV'}}
-
-    [loggers]
-    keys=root
-
-    [logger_root]
-    level=WARN
-    handlers=graylog
-
-Running tests
-=============
-
-To run tests, you'll need tox_. After installing, simply run it:
-
-.. code::
-
-    tox
-
-.. _tox: https://pypi.python.org/pypi/tox
+* `Changelog <./CHANGELOG.rst>`_
+* `Information for contributors <./CONTRIBUTING.rst>`_
