@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -10,57 +10,47 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-
-    services:
-      postgres:
-        image: postgres:13
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
+        include:
+          - python-version: 3.7
+            env: 
+              TOXENV: pep8
+          - python-version: 3.7
+            env: 
+              TOXENV: placement
+          - python-version: pypy3
+            env: 
+              TOXENV: pypy3
+          - python-version: 3.8
+            env: 
+              TOXENV: py38
+          - python-version: 3.7
+            env: 
+              TOXENV: py37
+          - python-version: 3.7
+            env: 
+              TOXENV: py37-pytest
+          - python-version: 3.7
+            env: 
+              TOXENV: py37-failskip
+          - python-version: 3.7
+            env: 
+              TOXENV: py37-limit
+          - python-version: 3.7
+            env: 
+              TOXENV: py37-prefix
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
-      run: pip install .
-
-    - name: Generate SSH key
-      run: |
-        ssh-keygen -f ~/.ssh/id_rsa -N ""
-        cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys
-        ssh -o StrictHostKeyChecking=no localhost id
-
+      run: pip install tox
     - name: Run tests
-      run: |
-        pip install pytest
-        py.test tests
-
-  notify:
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-    - name: Notify IRC
-      uses: peter-evans/irc-notify@v1
-      with:
-        server: "irc.freenode.org"
-        channel: "#bundlewrap"
-        message: "Build ${{ github.run_number }} of ${{ github.repository }} is ${{ job.status }}."
-        use-notice: true
-        skip-join: true
+      env:
+        TOXENV: ${{ matrix.env.TOXENV }}
+      run: tox
