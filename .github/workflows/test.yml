@@ -1,4 +1,4 @@
-name: Python package
+name: Python application
 
 on:
   push:
@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         python-version: [3.8, 3.9]
@@ -23,7 +24,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        CFLAGS="-O0" pip install . --upgrade
+        pip install -r requirements.txt
+        pip install -r test_requirements.txt
     - name: Run tests
-      run: |
-        ./runtests.sh
+      run: make test
