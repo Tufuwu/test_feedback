@@ -1,4 +1,4 @@
-name: Python package
+name: Python application
 
 on:
   push:
@@ -7,15 +7,14 @@ on:
   pull_request:
     branches:
       - main
-  release:
-    types: [created]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: ['3.8', '3.9']
+        python-version: [3.8, 3.9, 3.10]
 
     steps:
     - uses: actions/checkout@v2
@@ -24,32 +23,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: |
-        python setup.py build sdist
-        pip install -r requirements-dev.txt
-        pip install nose
-    - name: Test with nosetests
-      run: nosetests --verbosity 2
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'release'
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
-    - name: Install dependencies
-      run: |
-        python setup.py build sdist
-        pip install -r requirements-dev.txt
-    - name: Build and publish to PyPI
-      env:
-        TWINE_USERNAME: tuxtimo
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip install twine
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+      run: pip install peewee wtforms
+    - name: Run tests
+      run: python runtests.py

@@ -1,5 +1,4 @@
-include *.md
-include *.rst
-include *.txt
 include LICENSE
-recursive-include tests *
+include README.md
+include runtests.py
+recursive-include example *
