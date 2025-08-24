@@ -1,7 +1,7 @@
+__env__
 *.pyc
-build
+*.egg*
+__pycache__
 dist
-.idea/
-*.egg-info
-/.tox
-.eggs/
+build
+*.spec
