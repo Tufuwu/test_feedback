@@ -1,3 +1,3 @@
-include tox.ini
-include README.rst
-prune tests
+include *.rst
+include *.cfg
+include *.txt
