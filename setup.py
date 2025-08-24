@@ -1,29 +1,27 @@
-import setuptools
+from setuptools import setup
 
-with open('README.md', 'r') as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
-requires = [
-    'numpy==1.24.2',
-    'terminaltables==3.1.0',
-    'ortools==9.7.2996',
-]
+requires = []
+with open('requirements.txt') as f:
+    for line in f.readlines():
+        line = line.strip()  # Remove spaces
+        line = line.split('#')[0]  # Remove comments
+        if line:  # Remove empty lines
+            requires.append(line)
 
-setuptools.setup(
-    name='draftfast',
-    version='3.9.0',
-    author='Ben Brostoff',
-    author_email='ben.brostoff@gmail.com',
-    description='A tool to automate and optimize DraftKings and FanDuel '
-                'lineup construction.',
+setup(
+    name='django-clickhouse',
+    version='1.0.3',
+    packages=['django_clickhouse'],
+    package_dir={'': 'src'},
+    url='https://github.com/carrotquest/django-clickhouse',
+    license='BSD 3-clause "New" or "Revised" License',
+    author='Carrot quest',
+    author_email='m1ha@carrotquest.io',
+    description='Django extension to integrate with ClickHouse database',
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    url='https://github.com/BenBrostoff/draftfast',
-    packages=setuptools.find_packages(),
-    classifiers=[
-        'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: MIT License',
-        'Operating System :: OS Independent',
-    ],
-    install_requires=requires,
+    long_description_content_type="text/markdown",
+    install_requires=requires
 )
