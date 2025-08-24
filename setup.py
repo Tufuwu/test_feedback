@@ -1,21 +1,81 @@
-#!/usr/bin/env python
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-# implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+import io
 
-import setuptools
+from setuptools import find_packages, setup
+
+version = '1.9.0.dev0'
+
+# Please update tox.ini when modifying dependency version requirements
+install_requires = [
+    # load_pem_private/public_key (>=0.6)
+    # rsa_recover_prime_factors (>=0.8)
+    'cryptography>=0.8',
+    # Connection.set_tlsext_host_name (>=0.13)
+    'PyOpenSSL>=0.13',
+    # For pkg_resources. >=1.0 so pip resolves it to a version cryptography
+    # will tolerate; see #2599:
+    'setuptools==65.5.1',
+]
+
+testing_requires = [
+    'coverage>=4.0',
+    'flake8',
+    'mypy',
+    'pytest-cov',
+    'pytest-flake8>=0.5',
+    'pytest>=2.8.0',
+]
+
+dev_extras = [
+    'pytest',
+    'tox',
+]
+
+docs_extras = [
+    'Sphinx>=1.0',  # autodoc_member_order = 'bysource', autodoc_default_flags
+    'sphinx_rtd_theme',
+]
 
 
-setuptools.setup(
-    setup_requires=['pbr'],
-    pbr=True)
+with io.open('README.rst', encoding='UTF-8') as f:
+    long_description = f.read()
+
+
+setup(
+    name='josepy',
+    version=version,
+    description='JOSE protocol implementation in Python',
+    long_description=long_description,
+    url='https://github.com/certbot/josepy',
+    author="Certbot Project",
+    author_email='client-dev@letsencrypt.org',
+    license='Apache License 2.0',
+    python_requires='>=3.6',
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Security',
+    ],
+
+    packages=find_packages(where='src'),
+    package_dir={'': 'src'},
+    include_package_data=True,
+    install_requires=install_requires,
+    extras_require={
+        'dev': dev_extras,
+        'docs': docs_extras,
+        'tests': testing_requires,
+    },
+    entry_points={
+        'console_scripts': [
+            'jws = josepy.jws:CLI.run',
+        ],
+    },
+)
