@@ -1,13 +1,8 @@
-wheel
-tox
-nose
-coverage
-pylint
-rope
-sphinx
-doc8
-twine
-mpmath
+# Optional packages
 matplotlib
-seaborn
-mypy
+pyreadline
+pre-commit
+black[d]
+wheel
+hypothesis
+commitizen
