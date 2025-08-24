@@ -1,45 +1,37 @@
-from codecs import open
-from os import path
+from setuptools import setup
 
-from setuptools import find_packages, setup
-
-here = path.abspath(path.dirname(__file__))
-
-with open(path.join(here, "README.md"), encoding="utf-8") as f:
-    long_description = f.read()
-
-__version__ = None
-with open("sendgrid_backend/version.py") as f:
-    exec(f.read())
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
 
 setup(
-    name="django-sendgrid-v5",
-    version=str(__version__),
-    description="An implementation of Django's EmailBackend compatible with sendgrid-python v5+",
+    name='linkedin-jobs-scraper',
+    version='1.4.0',
+    author='Ludovico Fabbri',
+    author_email='ludovico.fabbri@gmail.com',
+    description='Scrape public available jobs on Linkedin using headless browser',
     long_description=long_description,
-    url="https://github.com/sklarsa/django-sendgrid-v5",
-    license="MIT",
-    author="Steven Sklar",
-    author_email="sklarsa@gmail.com",
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: Developers",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
+    long_description_content_type='text/markdown',
+    url='https://github.com/spinlud/py-linkedin-jobs-scraper.git',
+    packages=[
+        'linkedin_jobs_scraper',
+        'linkedin_jobs_scraper.chrome_cdp',
+        'linkedin_jobs_scraper.events',
+        'linkedin_jobs_scraper.exceptions',
+        'linkedin_jobs_scraper.filters',
+        'linkedin_jobs_scraper.query',
+        'linkedin_jobs_scraper.strategies',
+        'linkedin_jobs_scraper.utils',
     ],
-    keywords="django email sendgrid backend",
-    packages=find_packages(
-        exclude=[
-            "test",
-        ]
-    ),
     install_requires=[
-        "django >=1.8",
-        "sendgrid >=5.0.0",
-        "python-http-client >=3.0.0",
+        'selenium',
+        'websocket-client'
     ],
+    classifiers=[
+        'Intended Audience :: Developers',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3.6',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+    ],
+    python_requires='>=3.6',
 )
