@@ -10,20 +10,61 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.7", "3.9", "pypy-3.7"]
+        python-version: [3.6, 3.7, 3.8, 3.9, 3.10]
+        arch: [x64]
+        include:
+          - python-version: 3.6
+            arch: x64
+            env: WITHOUT_EXTENSION=0
+          - python-version: 3.6
+            arch: x64
+            env: WITHOUT_EXTENSION=1
+          - python-version: 3.7
+            arch: x64
+            env: WITHOUT_EXTENSION=0
+          - python-version: 3.7
+            arch: x64
+            env: WITHOUT_EXTENSION=1
+          - python-version: 3.8
+            arch: x64
+            env: WITHOUT_EXTENSION=0
+          - python-version: 3.8
+            arch: x64
+            env: WITHOUT_EXTENSION=1
+          - python-version: 3.9
+            arch: x64
+            env: WITHOUT_EXTENSION=0
+          - python-version: 3.9
+            arch: x64
+            env: WITHOUT_EXTENSION=1
+          - python-version: 3.10
+            arch: x64
+            env: WITHOUT_EXTENSION=0
+          - python-version: 3.10
+            arch: x64
+            env: WITHOUT_EXTENSION=1
+
     steps:
-    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
+
+    - name: Check out repository
+      uses: actions/checkout@v2
+
     - name: Install dependencies
       run: |
-        pip install -r requirements-test.txt
+        pip install coveralls pytest
+        python setup.py develop
+
     - name: Run tests
-      run: |
-        python -m unittest discover -s tests
-        coverage run run_tests.py && coverage report -m
+      run: coverage run --source=mwparserfromhell -m pytest
+
+    - name: Upload coverage to Coveralls
+      if: success()
+      run: coveralls
