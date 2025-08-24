@@ -1,108 +1,122 @@
-.. image:: https://img.shields.io/github/actions/workflow/status/cuducos/webassets-elm/tests.yml?style=flat
-  :target: https://github.com/cuducos/webassets-elm/actions/workflows/tests.yml
-  :alt: Travis CI
+pigar
+=====
 
-.. image:: https://img.shields.io/pypi/status/webassets-elm.svg?style=flat
-  :target: https://pypi.python.org/pypi/webassets-elm
-  :alt: Status
+.. image:: https://img.shields.io/github/workflow/status/damnever/pigar/PyCI?style=flat-square
+    :target: https://github.com/damnever/pigar/actions
 
-.. image:: https://img.shields.io/pypi/v/webassets-elm.svg?style=flat
-  :target: https://pypi.python.org/pypi/webassets-elm
-  :alt: Latest release
-
-.. image:: https://img.shields.io/pypi/pyversions/webassets-elm.svg?style=flat
-  :target: https://pypi.python.org/pypi/webassets-elm
-  :alt: Python versions
-
-.. image:: https://img.shields.io/pypi/l/webassets-elm.svg?style=flat
-  :target: https://pypi.python.org/pypi/webassets-elm
-  :alt: License
-
-Elm filter for webassets
-########################
-
-Filter for compiling `Elm <http://elm-lang.org>`_ files using `webassets <http://webassets.readthedocs.org>`_.
-
-Install
-*******
-
-::
-
-    pip install webassets-elm
+.. image:: https://img.shields.io/pypi/v/pigar.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/pigar
 
 
-Elm versions
-============
+A tool to generate requirements.txt for your Python project, and more than that.
 
-As of version 0.2.0, this plugin requires **Elm 0.19** or newer (building with ``elm make``).
+**NOTE**: `Pipenv <https://packaging.python.org/tutorials/managing-dependencies/#managing-dependencies>`_ or other tools is recommended for improving your development flow.
 
-If you need to build your Elm project with ``elm-make`` (Elm 0.18 and older), you can pin your ``webassets-elm`` package to version ``0.1.7``.
+.. image:: https://raw.githubusercontent.com/damnever/pigar/master/guide.gif
+    :target: https://github.com/damnever/pigar
 
-Basic usage
-***********
 
-.. code:: python
+Features
+--------
 
-    from webassets.filter import register_filter
-    from webassets_elm import Elm
+- When generating requirements for a project, ``pigar`` can consider all kinds of complicated situations. For example, this project has `py2_requirements.txt <https://github.com/damnever/pigar/blob/master/py2_requirements.txt>`_ and `py3_requirements.txt <https://github.com/damnever/pigar/blob/master/py3_requirements.txt>`_ for different Python versions(see the above GIF). ::
 
-    register_filter(Elm)
+    # Generate requirements.txt for current directory.
+    $ pigar
 
-Settings
-========
+    # Generate requirements for given directory in given file.
+    $ pigar -p ../dev-requirements.txt -P ../
 
-**Optionally** as an evironment variable you can have:
+  ``pigar`` can list all files which referenced the package, for example: ::
 
-* ``ELM_BIN``: alternative path to ``elm`` if it is **not** available globally (e.g. ``node_modules/.bin/elm``).
+    # project/foo.py: 2,3
+    # project/bar/baz.py: 2,7,8,9
+    foobar == 3.3.3
 
-* ``ELM_OPTIMIZE``: enable the Elm compiler optimization option. Recommended for production output.
+  If the requirements file is overwritten, ``pigar`` will show the difference between the old and the new.
 
-* ``ELM_DEBUG``: enable the Elm compiler debug option.
+- If you do not know the import name that belongs to a specific package (more generally, does ``Import Error: xxx`` drive you crazy?), such as ``bs4`` which may come from ``beautifulsoup4`` or ``MySQLdb`` which could come from ``MySQL_Python``, try searching for it: ::
 
-Examples
-========
+    $ pigar -s bs4 MySQLdb
 
-Flask with `flask-assets <http://flask-assets.readthedocs.io/>`_
-----------------------------------------------------------------
+- To check requirements for the latest version, just do: ::
 
-.. code:: python
+    # Specify a requirements file.
+    $ pigar -c ./requirements.txt
 
-    from flask import Flask
-    from flask_assets import Bundle, Environment
-    from webassets.filter import register_filter
-    from webassets_elm import Elm
+    # Or, you can let pigar search for *requirements.txt in the current directory
+    # level by itself. If not found, pigar will generate requirements.txt
+    # for the current project, then check for the latest versions.
+    $ pigar -c
 
-    app = Flask(__name__)
+Installation
+------------
 
-    register_filter(Elm)
-    assets = Environment(app)
+``pigar`` can run on Python 2.7.+ and 3.2+.
 
-    elm_js = Bundle('elm/main.elm', filters=('elm',), output='app.js')
-    assets.register('elm_js', elm_js)
+To install it with ``pip``, use: ::
 
-Django with `django-assets <http://django-assets.readthedocs.org>`_
--------------------------------------------------------------------
+    [sudo] pip install pigar
 
-.. code:: python
+To install it with ``conda``, use: ::
 
-    from django_assets import Bundle, register
-    from webassets.filter import register_filter
-    from webassets_elm import Elm
+    conda install -c conda-forge pigar
 
-    register_filter(Elm)
+To get the newest code from GitHub: ::
 
-    elm_js = Bundle('elm/main.elm', filters=('elm',), output='app.js')
-    register('elm_js', elm_js)
+  pip install git+https://github.com/damnever/pigar.git@[master or other branch] --upgrade
 
-Contributing
-============
-
-Feel free to `report an issue <http://github.com/cuducos/webassets-elm/issues>`_, `open a pull request <http://github.com/cuducos/webassets-elm/pulls>`_, or `drop <http://tech.lgbt/@cuducos>`_ a `line <https://bsky.app/profile/cuducos.me>`_.
-
-Don't forget to write and run tests, and format code:
+Usage
+-----
 
 ::
 
-    uv run pytest
+  usage: pigar [-h] [-v] [-u] [-s NAME [NAME ...]] [-c [PATH]] [-l LOG_LEVEL]
+               [-i DIR [DIR ...]] [-p SAVE_PATH] [-P PROJECT_PATH]
+               [-o COMPARISON_OPERATOR] [--without-referenced-comments]
 
-Please note you need ``elm`` binary available to run tests, here you can find different ways to `install Elm <http://elm-lang.org/install>`_.
+  Python requirements tool -- pigar, it will do only one thing at each time.
+  Default action is generate requirements.txt in current directory.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -v, --version         show pigar version information and exit
+    -u, --update          update database, use it when pigar failed you, exit
+                          when action done
+    -s NAME [NAME ...]    search package name by import name, use it if you do
+                          not know import name come from which package, exit
+                          when action done
+    -c [PATH]             check requirements for the latest version. If file
+                          path not given, search *requirements.txt in current
+                          directory, if not found, generate file
+                          requirements.txt, exit when action done
+    -l LOG_LEVEL          show given level log messages, argument can be (ERROR,
+                          WARNING, INFO, DEBUG), case-insensitive
+    -i DIR [DIR ...]      given a list of directory to ignore, relative
+                          directory, *used for* -c and default action
+    -p SAVE_PATH          save requirements in given file path, *used for*
+                          default action
+    -P PROJECT_PATH       project path, which is directory, *used for* default
+                          action
+    -o COMPARISON_OPERATOR
+                          The comparison operator for versions, alternatives:
+                          [==, ~=, >=]
+    --without-referenced-comments
+                          Omit requirements.txt comments showing the file and
+                          line of each import
+
+More
+----
+
+``pigar`` does not use regular expressions in such a violent way. Instead, it uses AST, which is a better method for extracting imported names from arguments of ``exec``/``eval``, doctest of docstring, etc.
+
+Also, ``pigar`` can detect the difference between different Python versions. For example, you can find ``concurrent.futures`` from the Python 3.2 standard library, but you will need install ``futures`` in earlier versions of Python to get ``concurrent.futures``.
+
+Finally, you already saw ``Features``. You can learn more from the source code.
+
+If you have any issues or suggestions, `please submit an issue on GitHub <https://github.com/damnever/pigar/issues>`_.
+
+LICENSE
+-------
+
+`The BSD 3-Clause License <https://github.com/damnever/pigar/blob/master/LICENSE>`_

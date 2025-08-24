@@ -1,10 +1,9 @@
-# Python
-*.pyc
-.eggs/
-webassets_elm.egg-info/
+.db.sqlite3
+*.py[cod]
+__pycache__/
+*-info/
+count.py
+insert.py
 build/
 dist/
-
-# Elm
-elm-stuff/
-node_modules/
+.venv*
