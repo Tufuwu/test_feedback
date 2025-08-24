@@ -1,49 +1,49 @@
-#!/usr/bin/env python
-# -*- test-case-name: ampoule -*-
-
-# Copyright (c) 2008 Valentino Volonghi.
-# See LICENSE for details.
-
-"""
-Distutils/Setuptools installer for AMPoule.
-"""
-
 from setuptools import setup
+import ast
+import os
+import io
 
-install_requires = ["Twisted[tls]>=17"]
 
-description = """A process pool built on Twisted and AMP."""
-long_description = open('README.md').read()
+def version():
+    """Return version string."""
+    with open(os.path.join("curtsies", "__init__.py")) as input_file:
+        for line in input_file:
+            if line.startswith("__version__"):
+                return ast.parse(line).body[0].value.s
+
+
+def long_description():
+    with open("README.md", encoding="utf-8") as f:
+        return f.read()
+
 
 setup(
-    name = "ampoule",
-    author = "Valentino Volonghi",
-    author_email = "dialtone@gmail.com",
-    maintainer = "Glyph Lefkowitz",
-    maintainer_email = "glyph@twistedmatrix.com",
-    description = description,
-    description_content_type='text/markdown',
-    long_description = long_description,
-    long_description_content_type='text/markdown',
-    license = "MIT License",
-    install_requires=install_requires + ['incremental'],
-    url="https://github.com/glyph/ampoule",
-    classifiers = [
-        'Development Status :: 4 - Beta',
-        'Environment :: Console',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Topic :: System',
+    name="curtsies",
+    version=version(),
+    description="Curses-like terminal wrapper, with colored strings!",
+    long_description=long_description(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/bpython/curtsies",
+    author="Thomas Ballinger",
+    author_email="thomasballinger@gmail.com",
+    license="MIT",
+    packages=["curtsies"],
+    install_requires=[
+        "blessings>=1.5",
+        "wcwidth>=0.1.4",
     ],
-    packages=["ampoule", "ampoule.test"],
-    package_data={'twisted': ['plugins/ampoule_plugin.py']},
-    use_incremental=True,
-    setup_requires=['incremental'],
-    include_package_data = True,
-    zip_safe=False
+    tests_require=[
+        "pyte",
+        "pytest",
+    ],
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+    ],
+    zip_safe=False,
 )
