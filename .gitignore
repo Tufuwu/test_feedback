@@ -13,7 +13,6 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
 lib/
 lib64/
 parts/
@@ -22,6 +21,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+*.zip
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -35,13 +35,12 @@ pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
+.nox/
 .tox/
 .coverage
-.coverage.*
 .cache
 nosetests.xml
 coverage.xml
-*,cover
 
 # Translations
 *.mo
@@ -56,5 +55,6 @@ docs/_build/
 # PyBuilder
 target/
 
-# IDE/Editor stuff
-.idea/*
+# Linux temp files
+*~
+*.swp
