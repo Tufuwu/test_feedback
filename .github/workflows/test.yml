@@ -10,23 +10,49 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
-      matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11]
-        toxenv: [py38, py39, py310, py311, pep8, docs, packaging]
       fail-fast: false
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+        include:
+          - python-version: 3.7
+            env: TOX_ENV=tests
+          - python-version: 3.8
+            env: TOX_ENV=tests
+          - python-version: 3.9
+            env: TOX_ENV=tests
+          - python-version: 3.9
+            env: TOX_ENV=mypy
+          - python-version: 3.9
+            env: TOX_ENV=apidocs
+          - python-version: 3.9
+            env: PUSH_DOCS=true
+
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install tox
-    - name: Run Tox
+        pip install tox codecov
+
+    - name: Run tests
+      run: |
+        if [ -n "${{ matrix.env.TOX_ENV }}" ]; then
+          tox -e ${{ matrix.env.TOX_ENV }}
+        fi
+
+    - name: Build and push docs
+      if: env.PUSH_DOCS == 'true'
+      run: ./.travis/build_docs.sh
+
+    - name: Upload coverage to Codecov
+      run: codecov
       env:
-        TOXENV: ${{ matrix.toxenv }}
-      run: tox
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
