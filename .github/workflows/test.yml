@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -9,18 +9,15 @@ on:
       - main
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8"]
-        env:
-          MODE: [flake8, flake8-strict, docs]
-          DJANGO_VERSION: [dj22, dj30, dj31, dj32, djdev]
-        exclude:
-          - python-version: "3.7"
-            env: MODE=docs
+        python-version: [3.6, 3.7, 3.8]
+        include:
+          - python-version: 3.7
+            architecture: x64
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -29,22 +26,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 762E3157
-        sudo apt-get update
-        sudo apt-get install -y binutils libproj-dev gdal-bin libsqlite3-mod-spatialite
-        pip install -U pip
-        pip install -U wheel virtualenv
-        pip install tox coveralls
+        pip install -r requirements.txt -r test-requirements.txt
     - name: Run tests
-      env:
-        MODE: ${{ matrix.env.MODE }}
-        DJANGO_VERSION: ${{ matrix.env.DJANGO_VERSION }}
       run: |
-        apt list --installed
-        coverage erase
-        tox -e py${{ matrix.python-version }}-${{ matrix.env.DJANGO_VERSION }}-${{ matrix.env.MODE }}
-    - name: Coveralls
-      if: success()
+        py.test --cov tdclient tdclient/test
+    - name: Upload coverage to Coveralls
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: coveralls
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      run: |
+        coveralls
