@@ -1,14 +1,10 @@
-name: CI
+name: Python CI
 
-on:
-  push:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ["3.8"]
@@ -21,15 +17,20 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
-        if [ -n "${{ env.SPHINX_VERSION }}" ]; then
-          pip install sphinx==${{ env.SPHINX_VERSION }}
-        else
-          pip install sphinx
-        fi
-        pip install -r requirements-travis.txt
+        pip install --editable .[dev]
+        pip install black mypy
 
-    - name: Run inspekt
+    - name: Run tests
       run: |
-        inspekt checkall --disable-style E501,E265,W601,W605,E402,E722,E741 --no-license-check
+        make check
+        make check-tests
