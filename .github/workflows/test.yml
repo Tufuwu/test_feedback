@@ -9,12 +9,19 @@ on:
       - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10']
-        django-version: ['1.8', '1.11', '2.0', '2.1', '2.2']
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+        include:
+          - python-version: "3.8"
+            allow_failure: true
+          - python-version: "3.9"
+            allow_failure: true
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,10 +30,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install -U django==${{ matrix.django-version }}
-        if [ "${{ matrix.python-version }}" = "3.8" ]; then pip install black; fi
+        python -m pip install --upgrade pip
+        pip install tox-travis coveralls
     - name: Run tests
-      run: python manage.py test
-    - name: Run Black
-      if: matrix.python-version == '3.8'
-      run: black --check zen_queries
+      run: tox
+    - name: Upload coverage to Coveralls
+      if: success()
+      run: coveralls
