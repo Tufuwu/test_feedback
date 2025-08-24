@@ -1,14 +1,41 @@
-# Tableau Server Client (Python)
+RapidPro Python Client
+======================
 
-[![Tableau Supported](https://img.shields.io/badge/Support%20Level-Tableau%20Supported-53bd92.svg)](https://www.tableau.com/support-levels-it-and-developer-tools) [![Build Status](https://travis-ci.org/tableau/server-client-python.svg?branch=master)](https://travis-ci.org/tableau/server-client-python)
+[![Build Status](https://travis-ci.org/rapidpro/rapidpro-python.svg?branch=master)](https://travis-ci.org/rapidpro/rapidpro-python)
+[![Coverage Status](https://coveralls.io/repos/github/rapidpro/rapidpro-python/badge.svg?branch=master)](https://coveralls.io/github/rapidpro/rapidpro-python)
+[![PyPI Release](https://img.shields.io/pypi/v/rapidpro-python.svg)](https://pypi.python.org/pypi/rapidpro-python/)
 
-Use the Tableau Server Client (TSC) library to increase your productivity as you interact with the Tableau Server REST API. With the TSC library you can do almost everything that you can do with the REST API, including:
+Official Python client library for the [RapidPro](http://rapidpro.github.io/rapidpro/). Supports latest Python 3.
 
-* Publish workbooks and data sources.
-* Create users and groups.
-* Query projects, sites, and more.
+Visit [here](http://rapidpro-python.readthedocs.org/) for complete documentation.
 
-This repository contains Python source code and sample files. Python versions 3.5 and up are supported.
+Installation
+------------
 
-For more information on installing and using TSC, see the documentation:
-<https://tableau.github.io/server-client-python/docs/>
+```
+pip install rapidpro-python
+```
+
+Example
+-------
+
+```python
+from temba_client.v2 import TembaClient
+client = TembaClient('rapidpro.io', 'your-api-token')
+for contact_batch in client.get_contacts(group='Reporters').iterfetches(retry_on_rate_exceed=True):
+    for contact in contact_batch:
+        print(contact.name)
+```
+
+If you don't know your API token then visit the [API Explorer](http://rapidpro.io/api/v2/explorer)
+
+Development
+-----------
+
+For discussions about future development, see the [RapidPro Developers Group](https://groups.google.com/forum/#!forum/rapidpro-dev).
+
+To run the tests:
+
+```
+nosetests --with-coverage --cover-erase --cover-package=temba_client --cover-html
+```

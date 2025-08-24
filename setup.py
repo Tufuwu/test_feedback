@@ -1,45 +1,53 @@
-import sys
-import versioneer
+from setuptools import setup, find_packages
 
 try:
-    from setuptools import setup
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst', 'md')
 except ImportError:
-    from distutils.core import setup
+    print("Warning: pypandoc module not found, could not convert Markdown to RST")
+    long_description = open('README.md', 'r').read()
 
-from os import path
 
-this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
-    long_description = f.read()
+def _is_requirement(line):
+    """Returns whether the line is a valid package requirement."""
+    line = line.strip()
+    return line and not (line.startswith("-r") or line.startswith("#"))
 
-# Only install pytest and runner when test command is run
-# This makes work easier for offline installs or low bandwidth machines
-needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
-pytest_runner = ["pytest-runner"] if needs_pytest else []
-test_requirements = ["mock", "pycodestyle", "pytest", "requests-mock>=1.0,<2.0"]
+
+def _read_requirements(filename):
+    """Returns a list of package requirements read from the file."""
+    requirements_file = open(filename).read()
+    return [line.strip() for line in requirements_file.splitlines()
+            if _is_requirement(line)]
+
+
+required_packages = _read_requirements("requirements/base.txt")
+test_packages = _read_requirements("requirements/tests.txt")
 
 setup(
-    name="tableauserverclient",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
-    author="Tableau",
-    author_email="github@tableau.com",
-    url="https://github.com/tableau/server-client-python",
-    packages=[
-        "tableauserverclient",
-        "tableauserverclient.models",
-        "tableauserverclient.server",
-        "tableauserverclient.server.endpoint",
-    ],
-    license="MIT",
-    description="A Python module for working with the Tableau Server REST API.",
+    name='rapidpro-python',
+    version=__import__('temba_client').__version__,
+    description='Python client library for the RapidPro',
     long_description=long_description,
-    long_description_content_type="text/markdown",
-    test_suite="test",
-    setup_requires=pytest_runner,
-    install_requires=[
-        "requests>=2.11,<3.0",
+
+    keywords='rapidpro client',
+    url='https://github.com/rapidpro',
+    license='BSD',
+
+    author='Nyaruka',
+    author_email='code@nyaruka.com',
+
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Topic :: Software Development :: Libraries',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 3',
     ],
-    tests_require=test_requirements,
-    extras_require={"test": test_requirements},
+
+    packages=find_packages(),
+    install_requires=required_packages,
+
+    test_suite='nose.collector',
+    tests_require=required_packages + test_packages,
 )
