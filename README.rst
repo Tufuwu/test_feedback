@@ -1,78 +1,75 @@
-==============
-Django Sekizai
-==============
+====================
+django-import-export
+====================
 
-|pypi| |build| |coverage|
+.. image:: https://github.com/django-import-export/django-import-export/actions/workflows/django-import-export-ci.yml/badge.svg
+    :target: https://github.com/django-import-export/django-import-export/actions/workflows/django-import-export-ci.yml
+    :alt: Build status on Github
 
-Sekizai means "blocks" in Japanese, and that's what this app provides. A fresh
-look at blocks. With django-sekizai you can define placeholders where your
-blocks get rendered and at different places in your templates append to those
-blocks. This is especially useful for css and javascript. Your sub-templates can
-now define css and Javascript files to be included, and the css will be nicely
-put at the top and the Javascript to the bottom, just like you should. Also
-sekizai will ignore any duplicate content in a single block.
+.. image:: https://coveralls.io/repos/github/django-import-export/django-import-export/badge.svg?branch=main
+    :target: https://coveralls.io/github/django-import-export/django-import-export?branch=main
 
-There are some issue/restrictions with this implementation due to how the
-django template language works, but if used properly it can be very useful and
-it is the media handling framework for the django CMS (since version 2.2).
+.. image:: https://img.shields.io/pypi/v/django-import-export.svg
+    :target: https://pypi.org/project/django-import-export/
+    :alt: Current version on PyPi
 
-.. note:: 
-        
-        This project is endorsed by the `django CMS Association <https://www.django-cms.org/en/about-us/>`_.
-        That means that it is officially accepted by the dCA as being in line with our roadmap vision and development/plugin policy. 
-        Join us on `Slack <https://www.django-cms.org/slack/>`_.
+.. image:: http://readthedocs.org/projects/django-import-export/badge/?version=stable
+    :target: https://django-import-export.readthedocs.io/en/stable/
+    :alt: Documentation
 
+.. image:: https://img.shields.io/pypi/pyversions/django-import-export
+    :alt: PyPI - Python Version
 
-*******************************************
-Contribute to this project and win rewards
-*******************************************
+.. image:: https://img.shields.io/pypi/djversions/django-import-export
+    :alt: PyPI - Django Version
 
-Because this is a an open-source project, we welcome everyone to
-`get involved in the project <https://www.django-cms.org/en/contribute/>`_ and
-`receive a reward <https://www.django-cms.org/en/bounty-program/>`_ for their contribution. 
-Become part of a fantastic community and help us make django CMS the best CMS in the world.   
+django-import-export is a Django application and library for importing
+and exporting data with included admin integration.
 
-We'll be delighted to receive your
-feedback in the form of issues and pull requests. Before submitting your
-pull request, please review our `contribution guidelines
-<http://docs.django-cms.org/en/latest/contributing/index.html>`_.
+Features:
 
-We're grateful to all contributors who have helped create and maintain this package.
-Contributors are listed at the `contributors <https://github.com/django-cms/django-sekizai/graphs/contributors>`_
-section.
+* support multiple formats (Excel, CSV, JSON, ...
+  and everything else that `tablib`_ supports)
 
+* admin integration for importing
 
-Documentation
-=============
+* preview import changes
 
-See ``REQUIREMENTS`` in the `setup.py <https://github.com/divio/django-sekizai/blob/master/setup.py>`_
-file for additional dependencies:
+* admin integration for exporting
 
-|python| |django|
+* export data respecting admin filters
 
-Please refer to the documentation in the docs/ directory for more information or visit our
-`online documentation <https://django-sekizai.readthedocs.io/en/latest/>`_.
+.. image:: docs/_static/images/django-import-export-change.png
 
 
-Running Tests
--------------
+* Documentation: https://django-import-export.readthedocs.io/en/stable/
+* GitHub: https://github.com/django-import-export/django-import-export/
+* Free software: BSD license
+* PyPI: https://pypi.org/project/django-import-export/
 
-You can run tests by executing::
+Example app
+-----------
 
-    virtualenv env
-    source env/bin/activate
-    pip install -r tests/requirements.txt
-    python setup.py test
+To run the demo app::
 
+    cd tests
+    ./manage.py makemigrations
+    ./manage.py migrate
+    ./manage.py createsuperuser
+    ./manage.py loaddata category book
+    ./manage.py runserver
 
-.. |pypi| image:: https://badge.fury.io/py/django-sekizai.svg
-    :target: http://badge.fury.io/py/django-sekizai
-.. |build| image:: https://travis-ci.org/divio/django-sekizai.svg?branch=master
-    :target: https://travis-ci.org/divio/django-sekizai
-.. |coverage| image:: https://codecov.io/gh/divio/django-sekizai/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/divio/django-sekizai
+Contribute
+----------
 
-.. |python| image:: https://img.shields.io/badge/python-3.5+-blue.svg
-    :target: https://pypi.org/project/django-sekizai/
-.. |django| image:: https://img.shields.io/badge/django-2.2,%203.0,%203.1-blue.svg
-    :target: https://www.djangoproject.com/
+If you'd like to contribute, simply fork `the repository`_, commit your
+changes to the **develop** branch (or branch off of it), and send a pull
+request. Make sure you add yourself to AUTHORS_.
+
+As most projects, we try to follow PEP8_ as closely as possible. Please bear
+in mind that most pull requests will be rejected without proper unit testing.
+
+.. _`PEP8`: https://www.python.org/dev/peps/pep-0008/
+.. _`tablib`: https://github.com/jazzband/tablib
+.. _`the repository`: https://github.com/django-import-export/django-import-export/
+.. _AUTHORS: https://github.com/django-import-export/django-import-export/blob/master/AUTHORS
