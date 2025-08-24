@@ -1,82 +1,196 @@
-.. image:: http://www.repostatus.org/badges/latest/active.svg
-    :target: http://www.repostatus.org/#active
-    :alt: Project Status: Active — The project has reached a stable, usable
-          state and is being actively developed.
+pygelf
+======
 
-.. image:: https://github.com/jwodder/apachelogs/workflows/Test/badge.svg?branch=master
-    :target: https://github.com/jwodder/apachelogs/actions?workflow=Test
-    :alt: CI Status
+.. image:: https://github.com/keeprocking/pygelf/actions/workflows/tests.yml/badge.svg?branch=master
+   :target: https://github.com/keeprocking/pygelf/actions
+.. image:: https://coveralls.io/repos/github/keeprocking/pygelf/badge.svg?branch=master
+   :target: https://coveralls.io/github/keeprocking/pygelf?branch=master
+.. image:: https://badge.fury.io/py/pygelf.svg
+   :target: https://pypi.python.org/pypi/pygelf
+.. image:: https://img.shields.io/pypi/dm/pygelf
+   :target: https://pypi.python.org/pypi/pygelf
 
-.. image:: https://codecov.io/gh/jwodder/apachelogs/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/jwodder/apachelogs
+Python logging handlers with GELF (Graylog Extended Log Format) support.
 
-.. image:: https://img.shields.io/pypi/pyversions/apachelogs.svg
-    :target: https://pypi.org/project/apachelogs/
+Currently TCP, UDP, TLS (encrypted TCP) and HTTP logging handlers are supported.
 
-.. image:: https://img.shields.io/github/license/jwodder/apachelogs.svg
-    :target: https://opensource.org/licenses/MIT
-    :alt: MIT License
+Get pygelf
+==========
+.. code:: python
 
-`GitHub <https://github.com/jwodder/apachelogs>`_
-| `PyPI <https://pypi.org/project/apachelogs/>`_
-| `Documentation <https://apachelogs.readthedocs.io>`_
-| `Issues <https://github.com/jwodder/apachelogs/issues>`_
-| `Changelog <https://github.com/jwodder/apachelogs/blob/master/CHANGELOG.md>`_
+    pip install pygelf
 
-``apachelogs`` parses Apache access log files.  Pass it a `log format string
-<http://httpd.apache.org/docs/current/mod/mod_log_config.html>`_ and get back a
-parser for logfile entries in that format.  ``apachelogs`` even takes care of
-decoding escape sequences and converting things like timestamps, integers, and
-bare hyphens to ``datetime`` values, ``int``\s, and ``None``\s.
+Usage
+=====
 
+.. code:: python
 
-Installation
-============
-``apachelogs`` requires Python 3.6 or higher.  Just use `pip
-<https://pip.pypa.io>`_ for Python 3 (You have pip, right?) to install
-``apachelogs`` and its dependencies::
-
-    python3 -m pip install apachelogs
+    from pygelf import GelfTcpHandler, GelfUdpHandler, GelfTlsHandler, GelfHttpHandler, GelfHttpsHandler
+    import logging
 
 
-Examples
-========
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger()
+    logger.addHandler(GelfTcpHandler(host='127.0.0.1', port=9401))
+    logger.addHandler(GelfUdpHandler(host='127.0.0.1', port=9402))
+    logger.addHandler(GelfTlsHandler(host='127.0.0.1', port=9403))
+    logger.addHandler(GelfHttpHandler(host='127.0.0.1', port=9404))
+    logger.addHandler(GelfHttpsHandler(host='127.0.0.1', port=9405))
 
-Parse a single log entry:
+    logger.info('hello gelf')
 
->>> from apachelogs import LogParser
->>> parser = LogParser("%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"")
->>> # The above log format is also available as the constant `apachelogs.COMBINED`.
->>> entry = parser.parse('209.126.136.4 - - [01/Nov/2017:07:28:29 +0000] "GET / HTTP/1.1" 301 521 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36"\n')
->>> entry.remote_host
-'209.126.136.4'
->>> entry.request_time
-datetime.datetime(2017, 11, 1, 7, 28, 29, tzinfo=datetime.timezone.utc)
->>> entry.request_line
-'GET / HTTP/1.1'
->>> entry.final_status
-301
->>> entry.bytes_sent
-521
->>> entry.headers_in["Referer"] is None
-True
->>> entry.headers_in["User-Agent"]
-'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
->>> # Log entry components can also be looked up by directive:
->>> entry.directives["%r"]
-'GET / HTTP/1.1'
->>> entry.directives["%>s"]
-301
->>> entry.directives["%t"]
-datetime.datetime(2017, 11, 1, 7, 28, 29, tzinfo=datetime.timezone.utc)
+Message structure
+=================
 
-Parse a file full of log entries:
+According to the GELF spec, each message has the following mandatory fields:
 
->>> with open('/var/log/apache2/access.log') as fp:  # doctest: +SKIP
-...     for entry in parser.parse_lines(fp):
-...         print(str(entry.request_time), entry.request_line)
-...
-2019-01-01 12:34:56-05:00 GET / HTTP/1.1
-2019-01-01 12:34:57-05:00 GET /favicon.ico HTTP/1.1
-2019-01-01 12:34:57-05:00 GET /styles.css HTTP/1.1
-# etc.
+- **version**: '1.1', can be overridden when creating a logger
+- **short_message**: the log message itself
+- **timestamp**: current timestamp
+- **level**: syslog-compliant_ log level number (e.g. WARNING will be sent as 4)
+- **host**: hostname of the machine that sent the message
+- **full_message**: this field contains stack trace and is being written **ONLY** when logging an exception, e.g.
+
+.. code:: python
+
+    try:
+        1/0
+    except ZeroDivisionError as e:
+        logger.exception(e)
+
+.. _syslog-compliant: https://en.wikipedia.org/wiki/Syslog#Severity_level
+
+In debug mode (when handler was created with debug=True option) each message contains some extra fields (which are pretty self-explanatory): 
+
+- **_file**
+- **_line**
+- **_module**
+- **_func**
+- **_logger_name**
+
+Configuration
+=============
+
+Each handler has the following parameters:
+
+- **host**: IP address of the GELF input
+- **port**: port of the GELF input
+- **debug** (False by default): if true, each log message will include debugging info: module name, file name, line number, method name
+- **version** ('1.1' by default): GELF protocol version, can be overridden
+- **include_extra_fields** (False by default): if true, each log message will include all the extra fields set to LogRecord
+- **json_default** (:code:`str` with exception for several :code:`datetime` objects): function that is called for objects that cannot be serialized to JSON natively by python. Default implementation is custom function that returns result of :code:`isoformat()` method for :code:`datetime.datetime`, :code:`datetime.time`, :code:`datetime.date` objects and result of :code:`str(obj)` call for other objects (which is string representation of an object with fallback to :code:`repr`)
+
+Also, there are some handler-specific parameters.
+
+UDP:
+
+- **chunk\_size** (1300 by default) - maximum length of the message. If log length exceeds this value, it splits into multiple chunks (see https://www.graylog.org/resources/gelf/ section "chunked GELF") with the length equals to this value. This parameter must be less than the MTU_. If the logs don't seem to be delivered, try to reduce this value.
+- **compress** (True by default) - if true, compress log messages before sending them to the server
+
+.. _MTU: https://en.wikipedia.org/wiki/Maximum_transmission_unit
+
+TLS:
+
+- **validate** (False by default) - if true, validate server certificate. If server provides a certificate that doesn't exist in **ca_certs**, you won't be able to send logs over TLS
+- **ca_certs** (None by default) - path to CA bundle file. This parameter is required if **validate** is true.
+- **certfile** (None by default) - path to certificate file that will be used to identify ourselves to the remote endpoint. This is necessary when the remote server has client authentication required. If **certfile** contains the private key, it should be placed before the certificate.
+- **keyfile** (None by default) - path to the private key. If the private key is stored in **certfile** this parameter can be None.
+
+HTTP:
+
+- **compress** (True by default) - if true, compress log messages before sending them to the server
+- **path** ('/gelf' by default) - path of the HTTP input (http://docs.graylog.org/en/latest/pages/sending_data.html#gelf-via-http)
+- **timeout** (5 by default) - amount of seconds that HTTP client should wait before it discards the request if the server doesn't respond
+
+HTTPS:
+
+- **compress** (True by default) - if true, compress log messages before sending them to the server
+- **path** ('/gelf' by default) - path of the HTTP input (http://docs.graylog.org/en/latest/pages/sending_data.html#gelf-via-http)
+- **timeout** (5 by default) - amount of seconds that HTTP client should wait before it discards the request if the server doesn't respond
+- **validate** whether or not to validate the input's certificate
+- **param ca_certs** path to the CA certificate file that signed the certificate the input is using
+- **param certfile** not yet used
+- **param keyfile** not yet used
+- **param keyfile_password** not yet used
+
+Static fields
+=============
+
+If you need to include some static fields into your logs, simply pass them to the handler constructor. Each additional field should start with underscore. You can't add field '\_id'.
+
+Example:
+
+.. code:: python
+
+    handler = GelfUdpHandler(host='127.0.0.1', port=9402, _app_name='pygelf', _something=11)
+    logger.addHandler(handler)
+
+Dynamic fields
+==============
+
+If you need to include some dynamic fields into your logs, add them to record by using LoggingAdapter or logging.Filter and create handler with include_extra_fields set to True.
+All the non-trivial fields of the record will be sent to graylog2 with '\_' added before the name
+
+Example:
+
+.. code:: python
+
+    class ContextFilter(logging.Filter):
+
+        def filter(self, record):
+            record.job_id = threading.local().process_id
+            return True
+
+    logger.addFilter(ContextFilter())
+    handler = GelfUdpHandler(host='127.0.0.1', port=9402, include_extra_fields=True)
+    logger.addHandler(handler)
+
+Defining fields from environment
+================================
+
+If you need to include some fields from the environment into your logs, add them to record by using `additional_env_fields`.
+
+The following example will add an `env` field to the logs, taking its value from the environment variable `FLASK_ENV`.
+
+.. code:: python
+
+    handler = GelfTcpHandler(host='127.0.0.1', port=9402, include_extra_fields=True, additional_env_fields={'env': 'FLASK_ENV'})
+    logger.addHandler(handler)
+
+The following can also be used in defining logging from configuration files (yaml/ini):
+
+.. code:: ini
+
+    [formatters]
+    keys=standard
+
+    [formatter_standard]
+    class=logging.Formatter
+    format=%(message)s
+
+    [handlers]
+    keys=graylog
+
+    [handler_graylog]
+    class=pygelf.GelfTcpHandler
+    formatter=standard
+    args=('127.0.0.1', '12201')
+    kwargs={'include_extra_fields': True, 'debug': True, 'additional_env_fields': {'env': 'FLASK_ENV'}}
+
+    [loggers]
+    keys=root
+
+    [logger_root]
+    level=WARN
+    handlers=graylog
+
+Running tests
+=============
+
+To run tests, you'll need tox_. After installing, simply run it:
+
+.. code::
+
+    tox
+
+.. _tox: https://pypi.python.org/pypi/tox
