@@ -1,80 +1,56 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+Publish a new version:
 
-from __future__ import print_function
+$ git tag X.Y.Z -m "Release X.Y.Z"
+$ git push --tags
+
+$ pip install --upgrade twine wheel
+$ python setup.py sdist bdist_wheel --universal
+$ twine upload dist/*
+"""
+import codecs
 from setuptools import setup
-import re
-import os
-import sys
 
 
-name = "django-zen-queries"
-package = "zen_queries"
-description = "Explicit control over query execution in Django applications."
-url = "https://github.com/dabapps/django-zen-queries"
-author = "DabApps"
-author_email = "hello@dabapps.com"
-license = "BSD"
-
-long_description = description + "\n\nFor full details, see https://github.com/dabapps/django-zen-queries"
+SCHEDULE_VERSION = '0.6.0'
+SCHEDULE_DOWNLOAD_URL = (
+    'https://github.com/dbader/schedule/tarball/' + SCHEDULE_VERSION
+)
 
 
-def get_version(package):
+def read_file(filename):
     """
-    Return package version as listed in `__version__` in `init.py`.
+    Read a utf8 encoded text file and return its contents.
     """
-    init_py = open(os.path.join(package, "__init__.py")).read()
-    return re.search("^__version__ = ['\"]([^'\"]+)['\"]", init_py, re.MULTILINE).group(
-        1
-    )
-
-
-def get_packages(package):
-    """
-    Return root package and all sub-packages.
-    """
-    return [
-        dirpath
-        for dirpath, dirnames, filenames in os.walk(package)
-        if os.path.exists(os.path.join(dirpath, "__init__.py"))
-    ]
-
-
-def get_package_data(package):
-    """
-    Return all files under the root package, that are not in a
-    package themselves.
-    """
-    walk = [
-        (dirpath.replace(package + os.sep, "", 1), filenames)
-        for dirpath, dirnames, filenames in os.walk(package)
-        if not os.path.exists(os.path.join(dirpath, "__init__.py"))
-    ]
-
-    filepaths = []
-    for base, filenames in walk:
-        filepaths.extend([os.path.join(base, filename) for filename in filenames])
-    return {package: filepaths}
-
-
-if sys.argv[-1] == "publish":
-    os.system("python setup.py sdist upload")
-    args = {"version": get_version(package)}
-    print("You probably want to also tag the version now:")
-    print("  git tag -a %(version)s -m 'version %(version)s'" % args)
-    print("  git push --tags")
-    sys.exit()
+    with codecs.open(filename, 'r', 'utf8') as f:
+        return f.read()
 
 
 setup(
-    name=name,
-    version=get_version(package),
-    url=url,
-    license=license,
-    description=description,
-    long_description=long_description,
-    author=author,
-    author_email=author_email,
-    packages=get_packages(package),
-    package_data=get_package_data(package),
+    name='schedule',
+    packages=['schedule'],
+    version=SCHEDULE_VERSION,
+    description='Job scheduling for humans.',
+    long_description=read_file('README.rst'),
+    license='MIT',
+    author='Daniel Bader',
+    author_email='mail@dbader.org',
+    url='https://github.com/dbader/schedule',
+    download_url=SCHEDULE_DOWNLOAD_URL,
+    keywords=[
+        'schedule', 'periodic', 'jobs', 'scheduling', 'clockwork',
+        'cron', 'scheduler', 'job scheduling'
+    ],
+    classifiers=[
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Natural Language :: English',
+    ],
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
 )
