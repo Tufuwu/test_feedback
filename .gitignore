@@ -1,17 +1,23 @@
+# Binaries
 *.pyc
-.vagrant
-*.egg-info
-build
-.tox
-flycheck-*
-flycheck_*
-dist
-.eggs
+.tox/
+.env/
+venv/
+.cache/
+~/
+build/
+dist/
+*.egg-info/
+.eggs/
+docs/_build/doctrees/
+
+# IDE related
+.idea/
+
+# tests
+junit-result.xml
+htmlcov/
 .coverage
-.env
-.cache
-.DS_Store
-htmlcov
-TAGS
-AUTHORS
-ChangeLog
+__pycache__/
+.pytest_cache/
+README.html
