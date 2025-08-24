@@ -1,4 +1,4 @@
-name: Python application
+name: CI
 
 on:
   push:
@@ -9,19 +9,33 @@ on:
       - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: [3.7]
+        include:
+          - python-version: 3.7
+            env: TOXENV=cover
+          - python-version: 3.7
+            env: TOXENV=black
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
-      run: pip install flask peewee
+      run: |
+        npm i -g elm
+        pip install tox-travis
+
     - name: Run tests
-      run: python runtests.py
+      run: tox
+
+    - name: Upload coverage to Coveralls
+      if: success()
+      run: coveralls
