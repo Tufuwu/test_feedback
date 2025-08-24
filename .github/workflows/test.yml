@@ -1,4 +1,4 @@
-name: Python package
+name: Python application
 
 on:
   push:
@@ -9,80 +9,33 @@ on:
       - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["2.6", "2.7", "3.4", "3.5", "3.6"]
-        django-version:
-          - "Django>=1.4,<1.5"
-          - "Django>=1.5,<1.6"
-          - "Django>=1.6,<1.7"
-          - "Django>=1.7,<1.8"
-          - "Django>=1.8,<1.9"
-          - "Django>=1.9,<1.10"
-          - "Django>=1.10,<1.11"
-          - "Django>=1.11,<2.0"
-          - "https://github.com/django/django/archive/main.tar.gz"
-      fail-fast: false
-      exclude:
-        - python-version: "2.6"
-          django-version: "Django>=1.7,<1.8"
-        - python-version: "2.6"
-          django-version: "Django>=1.8,<1.9"
-        - python-version: "2.6"
-          django-version: "Django>=1.9,<1.10"
-        - python-version: "2.6"
-          django-version: "Django>=1.10,<1.11"
-        - python-version: "2.6"
-          django-version: "Django>=1.11,<2.0"
-        - python-version: "2.6"
-          django-version: "https://github.com/django/django/archive/main.tar.gz"
-        - python-version: "2.7"
-          django-version: "https://github.com/django/django/archive/main.tar.gz"
-        - python-version: "3.4"
-          django-version: "Django>=1.4,<1.5"
-        - python-version: "3.4"
-          django-version: "https://github.com/django/django/archive/main.tar.gz"
-        - python-version: "3.5"
-          django-version: "Django>=1.4,<1.5"
-        - python-version: "3.5"
-          django-version: "Django>=1.5,<1.6"
-        - python-version: "3.5"
-          django-version: "Django>=1.6,<1.7"
-        - python-version: "3.5"
-          django-version: "Django>=1.7,<1.8"
-        - python-version: "3.6"
-          django-version: "Django>=1.4,<1.5"
-        - python-version: "3.6"
-          django-version: "Django>=1.5,<1.6"
-        - python-version: "3.6"
-          django-version: "Django>=1.6,<1.7"
-        - python-version: "3.6"
-          django-version: "Django>=1.7,<1.8"
-        - python-version: "3.6"
-          django-version: "Django>=1.8,<1.9"
-        - python-version: "3.6"
-          django-version: "Django>=1.9,<1.10"
-        - python-version: "3.6"
-          django-version: "Django>=1.10,<1.11"
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install coveralls coverage
-        pip install ${{ matrix.django-version }}
-    - name: Run tests
+        mkdir -p /home/runner/config
+        pip install -r requirements.txt
+
+    - name: Run script
       run: |
-        coverage run runtests.py
-        coverage report -m
-    - name: Upload coverage to Coveralls
-      if: success()
-      run: |
-        coverage combine
-        coveralls
+        python FeedCrawler.py --port=9090 --config="/home/runner/work/_temp/_github_home" --test_run --log-level=DEBUG
