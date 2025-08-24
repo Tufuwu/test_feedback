@@ -8,7 +8,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -79,14 +78,13 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
-# dotenv
+# Environments
 .env
-
-# virtualenv
 .venv
+env/
 venv/
-venv3/
 ENV/
+setup.bat
 
 # Spyder project settings
 .spyderproject
@@ -98,13 +96,11 @@ ENV/
 # mkdocs documentation
 /site
 
-# Tox
-.tox/
+# mypy
+.mypy_cache/
 
-# Emacs (and other) backup files
-*.bak
-*~
-\#*\#
+# pylint
+.pylint.d/
 
-# Sphinx build docs
-doc/_build/
+# IDE files
+.idea/
