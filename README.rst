@@ -1,89 +1,134 @@
-========
-Pyflakes
-========
+======
+PyGEOS
+======
 
-A simple program which checks Python source files for errors.
+.. Documentation at RTD — https://readthedocs.org
 
-Pyflakes analyzes programs and detects various errors.  It works by
-parsing the source file, not importing it, so it is safe to use on
-modules with side effects.  It's also much faster.
+.. image:: https://readthedocs.org/projects/pygeos/badge/?version=latest
+	:alt: Documentation Status
+	:target: https://pygeos.readthedocs.io/en/latest/?badge=latest
 
-It is `available on PyPI <https://pypi.org/project/pyflakes/>`_
-and it supports all active versions of Python: 2.7 and 3.4 to 3.8.
+.. Github Actions status — https://github.com/pygeos/pygeos/actions
 
+.. image:: https://github.com/pygeos/pygeos/workflows/Conda/badge.svg
+	:alt: Github Actions status
+	:target: https://github.com/pygeos/pygeos/actions?query=workflow%3AConda
 
+.. Appveyor CI status — https://ci.appveyor.com
 
-Installation
-------------
+.. image:: https://ci.appveyor.com/api/projects/status/jw48gpd88f188av6?svg=true
+	:alt: Appveyor CI status
+	:target: https://ci.appveyor.com/project/caspervdw/pygeos-3e5cu
 
-It can be installed with::
+.. PyPI
 
-  $ pip install --upgrade pyflakes
+.. image:: https://badge.fury.io/py/pygeos.svg
+	:alt: PyPI
+	:target: https://badge.fury.io/py/pygeos
 
+.. Anaconda
 
-Useful tips:
+.. image:: https://anaconda.org/conda-forge/pygeos/badges/version.svg
+  :alt: Anaconda
 
-* Be sure to install it for a version of Python which is compatible
-  with your codebase: for Python 2, ``pip2 install pyflakes`` and for
-  Python3, ``pip3 install pyflakes``.
+.. Zenodo
 
-* You can also invoke Pyflakes with ``python3 -m pyflakes .`` or
-  ``python2 -m pyflakes .`` if you have it installed for both versions.
-
-* If you require more options and more flexibility, you could give a
-  look to Flake8_ too.
-
-
-Design Principles
------------------
-Pyflakes makes a simple promise: it will never complain about style,
-and it will try very, very hard to never emit false positives.
-
-Pyflakes is also faster than Pylint_
-or Pychecker_. This is
-largely because Pyflakes only examines the syntax tree of each file
-individually. As a consequence, Pyflakes is more limited in the
-types of things it can check.
-
-If you like Pyflakes but also want stylistic checks, you want
-flake8_, which combines
-Pyflakes with style checks against
-`PEP 8`_ and adds
-per-project configuration ability.
+.. image:: https://zenodo.org/badge/191151963.svg
+  :alt: Zenodo 
+  :target: https://zenodo.org/badge/latestdoi/191151963
 
 
-Mailing-list
-------------
+PyGEOS is a C/Python library with vectorized geometry functions. The geometry
+operations are done in the open-source geometry library GEOS. PyGEOS wraps
+these operations in NumPy ufuncs providing a performance improvement when
+operating on arrays of geometries.
 
-Share your feedback and ideas: `subscribe to the mailing-list
-<https://mail.python.org/mailman/listinfo/code-quality>`_
+Note: PyGEOS is a very young package. While the available functionality should
+be stable and working correctly, it's still possible that APIs change in upcoming
+releases. But we would love for you to try it out, give feedback or contribute!
 
-Contributing
-------------
+What is a ufunc?
+----------------
 
-Issues are tracked on `GitHub <https://github.com/PyCQA/pyflakes/issues>`_.
+A universal function (or ufunc for short) is a function that operates on
+n-dimensional arrays in an element-by-element fashion, supporting array
+broadcasting. The for-loops that are involved are fully implemented in C
+diminishing the overhead of the Python interpreter.
 
-Patches may be submitted via a `GitHub pull request`_ or via the mailing list
-if you prefer. If you are comfortable doing so, please `rebase your changes`_
-so they may be applied to master with a fast-forward merge, and each commit is
-a coherent unit of work with a well-written log message.  If you are not
-comfortable with this rebase workflow, the project maintainers will be happy to
-rebase your commits for you.
+Multithreading
+--------------
 
-All changes should include tests and pass flake8_.
+PyGEOS functions support multithreading. More specifically, the Global
+Interpreter Lock (GIL) is released during function execution. Normally in Python, the
+GIL prevents multiple threads from computing at the same time. PyGEOS functions
+internally releases this constraint so that the heavy lifting done by GEOS can be
+done in parallel, from a single Python process.
 
-.. image:: https://github.com/PyCQA/pyflakes/workflows/Test/badge.svg
-   :target: https://github.com/PyCQA/pyflakes/actions
-   :alt: GitHub Actions build status
+Examples
+--------
 
-.. _Pylint: https://www.pylint.org/
-.. _flake8: https://pypi.org/project/flake8/
-.. _`PEP 8`: https://www.python.org/dev/peps/pep-0008/
-.. _Pychecker: http://pychecker.sourceforge.net/
-.. _`rebase your changes`: https://git-scm.com/book/en/v2/Git-Branching-Rebasing
-.. _`GitHub pull request`: https://github.com/PyCQA/pyflakes/pulls
+Compare an grid of points with a polygon:
 
-Changelog
----------
+.. code:: python
 
-Please see `NEWS.rst <https://github.com/PyCQA/pyflakes/blob/master/NEWS.rst>`_.
+  >>> geoms = points(*np.indices((4, 4)))
+  >>> polygon = box(0, 0, 2, 2)
+
+  >>> contains(polygon, geoms)
+
+    array([[False, False, False, False],
+           [False,  True, False, False],
+           [False, False, False, False],
+           [False, False, False, False]])
+
+
+Compute the area of all possible intersections of two lists of polygons:
+
+.. code:: python
+
+  >>> from pygeos import box, area, intersection
+
+  >>> polygons_x = box(range(5), 0, range(10, 15), 10)
+  >>> polygons_y = box(0, range(5), 10, range(10, 15))
+
+  >>> area(intersection(polygons_x[:, np.newaxis], polygons_y[np.newaxis, :]))
+
+  array([[100.,  90.,  80.,  70.,  60.],
+       [ 90.,  81.,  72.,  63.,  54.],
+       [ 80.,  72.,  64.,  56.,  48.],
+       [ 70.,  63.,  56.,  49.,  42.],
+       [ 60.,  54.,  48.,  42.,  36.]])
+
+See the documentation for more: https://pygeos.readthedocs.io
+
+
+Relationship to Shapely
+-----------------------
+
+Both Shapely and PyGEOS are exposing the functionality of the GEOS C++ library
+to Python. While Shapely only deals with single geometries, PyGEOS provides
+vectorized functions to work with arrays of geometries, giving better
+performance and convenience for such usecases.
+
+There is active discussion and work toward integrating PyGEOS into Shapely:
+
+* latest proposal: https://github.com/shapely/shapely-rfc/pull/1
+* prior discussion: https://github.com/Toblerity/Shapely/issues/782
+
+For now PyGEOS is developed as a separate project.
+
+References
+----------
+
+- GEOS: http://trac.osgeo.org/geos
+- Shapely: https://shapely.readthedocs.io/en/latest/
+- Numpy ufuncs: https://docs.scipy.org/doc/numpy/reference/ufuncs.html
+- Joris van den Bossche's blogpost: https://jorisvandenbossche.github.io/blog/2017/09/19/geopandas-cython/
+- Matthew Rocklin's blogpost: http://matthewrocklin.com/blog/work/2017/09/21/accelerating-geopandas-1
+
+
+Copyright & License
+-------------------
+
+PyGEOS is licensed under BSD 3-Clause license. Copyright (c) 2019, Casper van der Wel.
+GEOS is available under the terms of ​GNU Lesser General Public License (LGPL) 2.1 at https://trac.osgeo.org/geos.
