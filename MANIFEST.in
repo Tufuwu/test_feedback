@@ -1,8 +1,5 @@
-include LICENSE
+include *.md
 include *.rst
-include requirements.txt
-include test.py
-recursive-include docs *
+include *.txt
+include LICENSE
 recursive-include tests *
-global-exclude *.pyc
-global-exclude __pycache__
