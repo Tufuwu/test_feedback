@@ -1,88 +1,164 @@
+#!/usr/bin/env python3
+
+# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not
+# use this file except in compliance with the License. A copy of the License
+# is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on
+# an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
+"""
+A setuptools based setup module.
+
+See:
+- https://packaging.python.org/en/latest/distributing.html
+- https://github.com/pypa/sampleproject
+
+To install:
+
+1. Setup pypi by creating ~/.pypirc
+
+        [distutils]
+        index-servers =
+          pypi
+          pypitest
+
+        [pypi]
+        username=
+        password=
+
+        [pypitest]
+        username=
+        password=
+
+2. Create the dist
+
+   python3 setup.py sdist bdist_wheel
+
+3. Push
+
+   twine upload dist/*
+"""
+
 import os
-import sys
+import re
 
-from setuptools import setup
-from setuptools.command.test import test as TestCommand
+# Always prefer setuptools over distutils
+from setuptools import setup, find_packages
 
-cwd = os.path.realpath(os.path.dirname(__file__))
 
-class PyTest(TestCommand):
-    user_options = [("pytest-args=", "a", "Arguments to pass into py.test")]
+ROOT = os.path.dirname(__file__)
 
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.pytest_args = ""
 
-    def run_tests(self):
-        import shlex
+def get_version():
+    """
+    Reads the version from sacrebleu's __init__.py file.
+    We can't import the module because required modules may not
+    yet be installed.
+    """
+    VERSION_RE = re.compile(r'''__version__ = ['"]([0-9.]+)['"]''')
+    init = open(os.path.join(ROOT, 'sacrebleu', '__init__.py')).read()
+    return VERSION_RE.search(init).group(1)
 
-        import pytest
 
-        errno = pytest.main(shlex.split(self.pytest_args))
-        sys.exit(errno)
+def get_description():
+    DESCRIPTION_RE = re.compile(r'''__description__ = ['"](.*)['"]''')
+    init = open(os.path.join(ROOT, 'sacrebleu', '__init__.py')).read()
+    return DESCRIPTION_RE.search(init).group(1)
 
-# "setup.py publish" shortcut.
-if sys.argv[-1] == "publish":
-    os.system("python setup.py sdist bdist_wheel")
-    os.system("twine upload dist/*")
-    sys.exit()
 
-if sys.argv[-1] == "check":
-    os.system("python setup.py sdist bdist_wheel")
-    os.system("twine check dist/*")
-    sys.exit()
+def get_long_description():
+    with open('README.md') as f:
+        long_description = f.read()
 
-packages = ["symspellpy"]
+    with open('CHANGELOG.md') as f:
+        release_notes = f.read()
 
-requires = [
-    "numpy>=1.13.1"
-]
-test_requirements = [
-    'pytest-cov',
-    'pytest>=3.7.1'
-]
+    # Plug release notes into the long description
+    long_description = long_description.replace(
+        '# Release Notes\n\nPlease see [CHANGELOG.md](CHANGELOG.md) for release notes.',
+        release_notes)
 
-about = {}
-with open(os.path.join(cwd, "symspellpy", "__version__.py"), "r",
-          encoding="utf-8") as infile:
-    exec(infile.read(), about)
+    return long_description
 
-with open(os.path.join(cwd, "README.md"), "r", encoding="utf-8") as infile:
-    readme = infile.read()
-with open(os.path.join(cwd, "CHANGELOG.md"), "r",
-          encoding="utf-8") as infile:
-    changelog = infile.read()
 
 setup(
-    name=about["__title__"],
-    version=about["__version__"],
-    description=about["__description__"],
-    long_description=readme + "\n\n" + changelog,
-    long_description_content_type="text/markdown",
-    author=about["__author__"],
-    author_email=about["__author_email__"],
-    url=about["__url__"],
-    packages=packages,
-    package_data={"symspellpy": ["frequency_dictionary_en_82_765.txt",
-                                 "frequency_bigramdictionary_en_243_342.txt"]},
-    package_dir={"symspellpy": "symspellpy"},
-    include_package_data=True,
-    python_requires=">=3.4",
-    install_requires=requires,
-    license=about["__license__"],
-    zip_safe=False,
+    name='sacrebleu',
+    # Versions should comply with PEP440. For a discussion on single-sourcing
+    # the version across setup.py and the project code, see
+    # https://packaging.python.org/en/latest/single_source_version.html
+    version=get_version(),
+    description=get_description(),
+    long_description_content_type='text/markdown',
+    long_description=get_long_description(),
+    url='https://github.com/mjpost/sacrebleu',
+    author='Matt Post',
+    author_email='post@cs.jhu.edu',
+    maintainer_email='post@cs.jhu.edu',
+    license='Apache License 2.0',
+    # We don't support Python < 3.6 anymore
+    python_requires='>=3.6',
+    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Natural Language :: English",
-        "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7"
+        # How mature is this project? Common values are
+        #   3 - Alpha
+        #   4 - Beta
+        #   5 - Production/Stable
+        'Development Status :: 5 - Production/Stable',
+
+        # Indicate who your project is intended for
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Text Processing',
+
+        # Pick your license as you wish (should match "license" above)
+        'License :: OSI Approved :: Apache Software License',
+
+        # List operating systems
+        'Operating System :: POSIX',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
+
+        # Specify the Python versions you support here. In particular, ensure
+        # that you indicate whether you support Python 2, Python 3 or both.
+        'Programming Language :: Python :: 3 :: Only',
     ],
-    cmdclass={"test": PyTest},
-    tests_require=test_requirements,
+
+    # What does your project relate to?
+    keywords=['machine translation, evaluation, NLP, natural language processing, computational linguistics'],
+
+    # Which packages to deploy (currently sacrebleu, sacrebleu.matrics and sacrebleu.tokenizers)?
+    packages=find_packages(),
+
+    # Mark sacrebleu (and recursively all its sub-packages) as supporting mypy type hints (see PEP 561).
+    package_data={"sacrebleu": ["py.typed"]},
+
+    # List run-time dependencies here.  These will be installed by pip when
+    # your project is installed. For an analysis of "install_requires" vs pip's
+    # requirements files see:
+    # https://packaging.python.org/en/latest/requirements.html
+    install_requires=['portalocker', 'regex', 'tabulate>=0.8.9', 'numpy>=1.17', 'colorama'],
+
+    # List additional groups of dependencies here (e.g. development
+    # dependencies). You can install these using the following syntax,
+    # for example:
+    # $ pip install -e .[dev,test]
+    extras_require={'ja': ['mecab-python3==1.0.3', 'ipadic>=1.0,<2.0']},
+
+    # To provide executable scripts, use entry points in preference to the
+    # "scripts" keyword. Entry points provide cross-platform support and allow
+    # pip to create the appropriate form of executable for the target platform.
+    entry_points={
+        'console_scripts': [
+            'sacrebleu = sacrebleu.sacrebleu:main',
+        ],
+    },
 )
