@@ -1,9 +1,5 @@
-*.py[cod]
-build/
-dist/
+*.pyc
 venv/
-*.egg-info/
-
-keys.py
-
-.idea/
+etip/db.sqlite3
+.idea
+.vscode
