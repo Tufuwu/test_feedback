@@ -1,33 +1,48 @@
-name: CI
+name: Python package
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  flake8:
+  build:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.7"]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install flake8
-      - name: Run Flake8
-        run: flake8
+        python-version: [3.7, 3.8]
 
-  dockerfile_lint:
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - name: Test with pytest
+      run: pytest -v --cov=filestack tests
+    - name: Upload coverage to Coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      run: coveralls
+
+  notification:
+    if: failure()
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Hadolint
-        uses: docker://hadolint/hadolint:v1.19.0-45-gef91156-alpine
-        with:
-          entrypoint: ["hadolint"]
-          args: ["Dockerfile"]
+    - name: Send email notification
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.example.com
+        server_port: 587
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: GitHub Actions - Build Failure
+        body: Build failed for ${{ github.repository }} on ${{ github.ref }}.
+        to: dev@filestack.com
+        from: github-actions@example.com
