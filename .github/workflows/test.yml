@@ -11,10 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.6", "3.8", "3.9"]
 
     steps:
     - uses: actions/checkout@v2
@@ -24,11 +23,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install codecov coverage
-    - name: Run tests
+        pip install poetry
+        poetry install -v
+    - name: Lint with flake8
       run: |
-        nosetests --verbose --with-coverage --cover-erase --cover-package=catkin_lint test
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+        poetry run flake8 example/
+        poetry run flake8 tests/
+    - name: Test with pytest
+      run: |
+        poetry run pytest
