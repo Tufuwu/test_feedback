@@ -13,7 +13,22 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
+
+    services:
+      postgres:
+        image: postgres:13
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
 
     steps:
     - uses: actions/checkout@v2
@@ -23,20 +38,29 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-update-conda: true
-        activate-environment: test
-        environment-file: environment.yml
-        python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
-      run: |
-        conda install altair matplotlib numba numpy pandas pyteomics pytest -c defaults -c bioconda -c conda-forge
-        python -m pip install .
+      run: pip install .
 
-    - name: Test with pytest
+    - name: Generate SSH key
       run: |
-        source activate test
-        pytest
+        ssh-keygen -f ~/.ssh/id_rsa -N ""
+        cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys
+        ssh -o StrictHostKeyChecking=no localhost id
+
+    - name: Run tests
+      run: |
+        pip install pytest
+        py.test tests
+
+  notify:
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Notify IRC
+      uses: peter-evans/irc-notify@v0.1.0
+      with:
+        server: "irc.freenode.org"
+        channel: "#bundlewrap"
+        message: "Build ${{ github.run_number }} of ${{ github.repository }} is ${{ job.status }}."
+        use-notice: true
+        skip-join: true
