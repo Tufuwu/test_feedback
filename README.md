@@ -1,148 +1,123 @@
-# Fierce
+# multicodec
 
-[![CI](https://github.com/mschwager/fierce/actions/workflows/ci.yml/badge.svg)](https://github.com/mschwager/fierce/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/mschwager/fierce/badge.svg?branch=master)](https://coveralls.io/github/mschwager/fierce?branch=master)
-[![Dlint](https://github.com/mschwager/fierce/actions/workflows/dlint.yml/badge.svg)](https://github.com/mschwager/fierce/actions/workflows/dlint.yml)
-[![Python Versions](https://img.shields.io/pypi/pyversions/fierce.svg)](https://img.shields.io/pypi/pyversions/fierce.svg)
-[![PyPI Version](https://img.shields.io/pypi/v/fierce.svg)](https://img.shields.io/pypi/v/fierce.svg)
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
+[![](https://img.shields.io/badge/project-multiformats-blue.svg?style=flat-square)](https://github.com/multiformats/multiformats)
+[![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](https://webchat.freenode.net/?channels=%23ipfs)
+[![](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-Fierce is a `DNS` reconnaissance tool for locating non-contiguous IP space.
+> Canonical table of of codecs used by various multiformats
 
-Useful links:
+## Table of Contents
 
-* [Domain Name System (DNS)](https://en.wikipedia.org/wiki/Domain_Name_System)
-  * [Domain Names - Concepts and Facilities](https://tools.ietf.org/html/rfc1034)
-  * [Domain Names - Implementation and Specification](https://tools.ietf.org/html/rfc1035)
-  * [Threat Analysis of the Domain Name System (DNS)](https://tools.ietf.org/html/rfc3833)
-* [Name Servers (NS)](https://en.wikipedia.org/wiki/Domain_Name_System#Name_servers)
-* [State of Authority Record (SOA)](https://en.wikipedia.org/wiki/List_of_DNS_record_types#SOA)
-* [Zone Transfer](https://en.wikipedia.org/wiki/DNS_zone_transfer)
-  * [DNS Zone Transfer Protocol (AXFR)](https://tools.ietf.org/html/rfc5936)
-  * [Incremental Zone Transfer in DNS (IXFR)](https://tools.ietf.org/html/rfc1995)
-* [Wildcard DNS Record](https://en.wikipedia.org/wiki/Wildcard_DNS_record)
+- [Motivation](#motivation)
+- [Description](#description)
+- [Examples](#examples)
+- [Multicodec table](#multicodec-table)
+  - [Adding new multicodecs to the table](#adding-new-multicodecs-to-the-table)
+- [Implementations](#implementations)
+- [Reserved Code Ranges](#reserved-code-ranges)
+- [FAQ](#faq)
+- [Contribute](#contribute)
+- [License](#license)
 
-# Overview
+## Motivation
 
-First, credit where credit is due, `fierce` was originally written by RSnake
-along with others at http://ha.ckers.org/. This is simply a conversion to
-Python 3 to simplify and modernize the codebase.
+Multicodec is an agreed-upon codec table. It is designed for use in binary representations, such as keys or identifiers (i.e [CID](https://github.com/ipld/cid)).
 
-The original description was very apt, so I'll include it here:
+## Description
 
-> Fierce is a semi-lightweight scanner that helps locate non-contiguous
-> IP space and hostnames against specified domains. It's really meant
-> as a pre-cursor to nmap, unicornscan, nessus, nikto, etc, since all 
-> of those require that you already know what IP space you are looking 
-> for. This does not perform exploitation and does not scan the whole 
-> internet indiscriminately. It is meant specifically to locate likely 
-> targets both inside and outside a corporate network. Because it uses 
-> DNS primarily you will often find mis-configured networks that leak 
-> internal address space. That's especially useful in targeted malware.
+The code of a multicodec is usually encoded as unsigned varint as defined by [multiformats/unsigned-varint](https://github.com/multiformats/unsigned-varint). It is then used as a prefix to identify the data that follows.
 
-# Installing
+## Examples
 
-```
-$ python -m pip install fierce
-$ fierce -h
-```
+Multicodec is used in various [Multiformats](https://github.com/multiformats/multiformats). In [Multihash](https://github.com/multiformats/multihash) it is used to identify the hashes, in the machine-readable [Multiaddr](https://github.com/multiformats/multiaddr) to identify components such as IP addresses, domain names, identities, etc.
 
-OR
+## Multicodec table
 
-```
-$ git clone https://github.com/mschwager/fierce.git
-$ cd fierce
-$ python -m pip install -r requirements.txt
-$ python fierce/fierce.py -h
-```
+Find the canonical table of multicodecs at [table.csv](/table.csv). There's also a sortable [viewer](https://ipfs.io/ipfs/QmXec1jjwzxWJoNbxQF5KffL8q6hFXm9QwUGaa3wKGk6dT/#title=Multicodecs&src=https://raw.githubusercontent.com/multiformats/multicodec/master/table.csv).
 
-*Requires Python 3.*
+### Status
 
-# Using
+Each multicodec is marked with a status:
 
-Let's start with something basic:
+* draft - this codec has been reserved but may be reassigned if it doesn't gain wide adoption.
+* permanent - this codec has been widely adopted and may not reassigned.
 
-```
-$ fierce --domain google.com --subdomains accounts admin ads
-```
+NOTE: Just because a codec is marked draft, don't assume that it can be re-assigned. Check to see if it ever gained wide adoption and, if so, mark it as permanent.
 
-Traverse IPs near discovered domains to search for contiguous blocks with the
-`--traverse` flag:
+### Adding new multicodecs to the table
 
-```
-$ fierce --domain facebook.com --subdomains admin --traverse 10
-```
+The process to add a new multicodec to the table is the following:
 
-Limit nearby IP traversal to certain domains with the `--search` flag:
+1. Fork this repo
+2. Add your codecs to the table. Each newly proposed codec must have:
+  1. A unique codec.
+  2. A unique name.
+  3. A category.
+  4. A status of "draft".
+3. Submit a Pull Request
 
-```
-$ fierce --domain facebook.com --subdomains admin --search fb.com fb.net
-```
+This ["first come, first assign"](https://github.com/multiformats/multicodec/pull/16#issuecomment-260146609) policy is a way to assign codes as they are most needed, without increasing the size of the table (and therefore the size of the multicodecs) too rapidly.
 
-Attempt an `HTTP` connection on domains discovered with the `--connect` flag:
+The first 127 bits are encoded as a single-byte varint, hence they are reserved for the most widely used multicodecs. So if you are adding your own codec to the table, you most likely would want to ask for a codec bigger than `0x80`.
 
-```
-$ fierce --domain stackoverflow.com --subdomains mail --connect
-```
+Codec names should be easily convertible to constants in common programming languages using basic transformation rules (e.g. upper-case, conversion of `-` to `_`, etc.). Therefore they should contain alphanumeric characters, with the first character being alphabetic. The primary delimiter for multi-part names should be `-`, with `_` reserved for cases where a secondary delimiter is required. For example: `bls12_381-g1-pub` contains 3 parts: `bls_381`, `g1` and `pub`, where `bls_381` is "BLS 381" which is not commonly written as "BLS381" and therefore requires a secondary separator.
 
-Exchange speed for breadth with the `--wide` flag, which looks for nearby
-domains on all IPs of the [/24](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#IPv4_CIDR_blocks)
-of a discovered domain:
+The `validate.py` script can be used to validate the table once it's edited.
 
-```
-$ fierce --domain facebook.com --wide
-```
+## Implementations
 
-Zone transfers are rare these days, but they give us the keys to the DNS castle.
-[zonetransfer.me](https://digi.ninja/projects/zonetransferme.php) is a very
-useful service for testing for and learning about zone transfers:
+- [go](https://github.com/multiformats/go-multicodec/)
+- [JavaScript](https://github.com/multiformats/js-multicodec)
+- [Python](https://github.com/multiformats/py-multicodec)
+- [Haskell](https://github.com/multiformats/haskell-multicodec)
+- [Elixir](https://github.com/nocursor/ex-multicodec)
+- [Scala](https://github.com/fluency03/scala-multicodec)
+- [Ruby](https://github.com/sleeplessbyte/ruby-multicodec)
+- [Add yours today!](https://github.com/multiformats/multicodec/edit/master/table.csv)
 
-```
-$ fierce --domain zonetransfer.me
-```
+## Reserved Code Ranges
 
-To save the results to a file for later use we can simply redirect output:
+The following code ranges have special meaning and may only have meanings assigned to as specified in their description:
 
-```
-$ fierce --domain zonetransfer.me > output.txt
-```
+### Private Use Area
 
-Internal networks will often have large blocks of contiguous IP space assigned.
-We can scan those as well:
+*Range*: `0x300000 – 0x3FFFFF`
 
-```
-$ fierce --dns-servers 10.0.0.1 --range 10.0.0.0/24
-```
+Codes in this range are reserved for internal use by applications and will never be assigned any meaning as part of the Multicodec specification.
 
-Check out `--help` for further information:
+## FAQ
 
-```
-$ fierce --help
-```
+> Why varints?
 
-# Developing
+So that we have no limitation on protocols.
 
-First, install development packages:
+> What kind of varints?
 
-```
-$ python -m pip install -r requirements.txt
-$ python -m pip install -r requirements-dev.txt
-$ python -m pip install -e .
-```
+An Most Significant Bit unsigned varint, as defined by the [multiformats/unsigned-varint](https://github.com/multiformats/unsigned-varint).
 
-## Testing
+> Don't we have to agree on a table of protocols?
 
-```
-$ pytest
-```
+Yes, but we already have to agree on what protocols themselves are, so this is not so hard. The table even leaves some room for custom protocol paths, or you can use your own tables. The standard table is only for common things.
 
-## Linting
+> Where did multibase go?
 
-```
-$ flake8
-```
+For a period of time, the [multibase](https://github.com/multiformats/multibase) prefixes lived in this table. However, multibase prefixes are *symbols* that may map to *multiple* underlying byte representations (that may overlap with byte sequences used for other multicodecs). Including them in a table for binary/byte identifiers lead to more confusion than it solved.
 
-## Coverage
+You can still find the table in [multibase.csv](https://github.com/multiformats/multibase/blob/master/multibase.csv).
 
-```
-$ pytest --cov
-```
+> Can I use multicodec for my own purpose?
+
+Sure, you can use multicodec whenever you have the need for self-identifiable data. Just prefix your own data with the corresponding varint encodec multicodec.
+
+## Contribute
+
+Contributions welcome. Please check out [the issues](https://github.com/multiformats/multicodec/issues).
+
+Check out our [contributing document](https://github.com/multiformats/multiformats/blob/master/contributing.md) for more information on how we work, and about contributing in general. Please be aware that all interactions related to multiformats are subject to the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
+
+Small note: If editing the README, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
+
+## License
+
+This repository is only for documents. All of these are licensed under the [CC-BY-SA 3.0](https://ipfs.io/ipfs/QmVreNvKsQmQZ83T86cWSjPu2vR3yZHGPm5jnxFuunEB9u) license © 2016 Protocol Labs Inc. Any code is under a [MIT](LICENSE) © 2016 Protocol Labs Inc.
