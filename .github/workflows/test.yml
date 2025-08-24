@@ -1,4 +1,4 @@
-name: Python application
+name: CI
 
 on:
   push:
@@ -11,18 +11,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
-      run: pip install peewee wtforms
-    - name: Run tests
-      run: python runtests.py
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate
+        make setup
+
+    - name: Check build
+      run: make
+
+    - name: Lint with Flake8
+      run: make lint
+
+    - name: Build documentation
+      run: make docs
+
+    - name: Test with coverage
+      run: make travis-test
