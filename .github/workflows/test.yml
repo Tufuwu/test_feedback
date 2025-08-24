@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -14,73 +14,85 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9, 3.10]
-        tox-env:
-          - flake8
-          - check_rst
-          - coverage
-          - py36-django111
-          - py36-django22
-          - py37-django111
-          - py38-django22
-          - py39-django22
-          - py310-django32
-          - py39-django32
-          - py310-django40
-          - py310-django41
+        python-version: [3.6, 3.7, 3.8, 3.9]
+        django-version: [22, 30, 31, 32]
         include:
-          - python-version: 3.6
-            tox-env: py36-django111
-            os: ubuntu-latest
-          - python-version: 3.6
-            tox-env: py36-django22
-            os: ubuntu-latest
-          - python-version: 3.7
-            tox-env: py37-django111
-            os: ubuntu-latest
-          - python-version: 3.8
-            tox-env: py38-django22
-            os: ubuntu-latest
-          - python-version: 3.9
-            tox-env: py39-django22
-            os: ubuntu-latest
-          - python-version: 3.10
-            tox-env: py310-django32
-            os: ubuntu-latest
-          - python-version: 3.9
-            tox-env: py39-django32
-            os: ubuntu-latest
-          - python-version: 3.10
-            tox-env: py310-django40
-            os: ubuntu-latest
-          - python-version: 3.10
-            tox-env: py310-django41
-            os: ubuntu-latest
+          - os: ubuntu-latest
+            python-version: 3.6
+            django-version: 22
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.7
+            django-version: 22
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.8
+            django-version: 22
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.9
+            django-version: 22
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.6
+            django-version: 30
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.7
+            django-version: 30
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.8
+            django-version: 30
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.9
+            django-version: 30
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.6
+            django-version: 31
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.7
+            django-version: 31
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.8
+            django-version: 31
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.9
+            django-version: 31
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.6
+            django-version: 32
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.7
+            django-version: 32
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.8
+            django-version: 32
+            arch: ppc64le
+          - os: ubuntu-latest
+            python-version: 3.9
+            django-version: 32
+            arch: ppc64le
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install tox
-
-    - name: Run tox
-      run: tox -e ${{ matrix.tox-env }}
-
-    - name: Show tox logs
-      if: failure()
-      run: cat tox_log/*.log
+    - name: Run tests
+      env:
+        TOXENV: py${{ matrix.python-version }}-django${{ matrix.django-version }}
+      run: tox
