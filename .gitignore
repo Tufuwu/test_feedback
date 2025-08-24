@@ -1,7 +1,9 @@
-__env__
 *.pyc
-*.egg*
-__pycache__
+_trial_temp
+docs/_build
+*egg-info
+.tox
+.coverage
+venv
 dist
 build
-*.spec
