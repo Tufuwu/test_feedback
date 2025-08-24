@@ -10,29 +10,30 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ['3.7', '3.8']
+
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # Ensure full history is fetched to avoid shallow clone issues
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python setup.py --quiet install
+        python -m pip install --upgrade pip
+        pip install setuptools==57.5.0  # Use a compatible version of setuptools
+        pip install coverage codecov
     - name: Run tests
       run: |
-        python test_docformatter.py
-        docformatter setup.py
-    - name: Upload coverage to Coveralls
-      if: success()
+        python setup.py develop
+        coverage run -m unittest discover
+    - name: Upload coverage to Codecov
       env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        pip install --quiet coverage coveralls
-        make coverage
-        coveralls
+        codecov
