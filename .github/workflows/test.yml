@@ -10,13 +10,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-        include:
-          - python-version: 3.7
-            env: TOX_SKIP_ENV=typeshed
+        python-version: [3.8, 3.9, 3.10, 3.11, pypy-3.7, pypy-3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -25,8 +22,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install tox
-    - name: Run tests
+      run: |
+        pip install -r test-requirements.txt
+        pip install -e .
+    - name: Test with nosetests
+      run: nosetests -q --with-coverage --cover-package=pycron
+    - name: Upload coverage to Coveralls
+      if: success()
       env:
-        TOX_SKIP_ENV: ${{ matrix.env.TOX_SKIP_ENV }}
-      run: tox
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      run: coveralls
