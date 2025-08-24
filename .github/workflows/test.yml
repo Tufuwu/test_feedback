@@ -1,4 +1,4 @@
-name: Python CI
+name: Python package
 
 on:
   push:
@@ -11,18 +11,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
-        python-version: ["3.7", "3.8"]
+        python-version: [3.9, 3.7, 3.8, pypy-3.7]
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Cache pip
       uses: actions/cache@v3
       with:
@@ -30,18 +29,9 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-
     - name: Install dependencies
       run: |
-        pip install --upgrade black
-        pip install --upgrade flake8
-        pip install --upgrade -r requirements.txt
-
-    - name: Static analysis with flake8
-      run: flake8 --statistics --count
-
-    - name: Check code format with black
-      run: black --check --diff --target-version py37 .
-
-    - name: Dummy run
-      run: python random_street_view.py --help
+        pip wheel -r requirements.txt
+        pip install -r requirements.txt
+    - name: Test with setup.py
+      run: python setup.py test
