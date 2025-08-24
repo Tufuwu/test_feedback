@@ -1,91 +1,86 @@
-[![Documentation Status](https://readthedocs.org/projects/curtsies/badge/?version=latest)](https://readthedocs.org/projects/curtsies/?badge=latest)
-![Curtsies Logo](http://ballingt.com/assets/curtsiestitle.png)
+# html2text
 
-Curtsies is a Python 3.6+ compatible library for interacting with the terminal.
-This is what using (nearly every feature of) curtsies looks like:
+[![Build Status](https://secure.travis-ci.org/Alir3z4/html2text.png)](https://travis-ci.org/Alir3z4/html2text)
+[![Coverage Status](https://coveralls.io/repos/Alir3z4/html2text/badge.png)](https://coveralls.io/r/Alir3z4/html2text)
+[![Downloads](http://badge.kloud51.com/pypi/d/html2text.png)](https://pypi.org/project/html2text/)
+[![Version](http://badge.kloud51.com/pypi/v/html2text.png)](https://pypi.org/project/html2text/)
+[![Wheel?](http://badge.kloud51.com/pypi/wheel/html2text.png)](https://pypi.org/project/html2text/)
+[![Format](http://badge.kloud51.com/pypi/format/html2text.png)](https://pypi.org/project/html2text/)
+[![License](http://badge.kloud51.com/pypi/license/html2text.png)](https://pypi.org/project/html2text/)
 
-```python
-import random
-import sys
 
-from curtsies import FullscreenWindow, Input, FSArray
-from curtsies.fmtfuncs import red, bold, green, on_blue, yellow
+html2text is a Python script that converts a page of HTML into clean, easy-to-read plain ASCII text. Better yet, that ASCII also happens to be valid Markdown (a text-to-HTML format).
 
-print(yellow('this prints normally, not to the alternate screen'))
 
-with FullscreenWindow() as window:
-    a = FSArray(window.height, window.width)
-    msg = red(on_blue(bold('Press escape to exit, space to clear.')))
-    a[0:1, 0:msg.width] = [msg]
-    window.render_to_terminal(a)
-    with Input() as input_generator:
-        for c in input_generator:
-            if c == '<ESC>':
-                break
-            elif c == '<SPACE>':
-                a = FSArray(window.height, window.width)
-            else:
-                s = repr(c)
-                row = random.choice(range(window.height))
-                column = random.choice(range(window.width-len(s)))
-                color = random.choice([red, green, on_blue, yellow])
-                a[row, column:column+len(s)] = [color(s)]
-            window.render_to_terminal(a)
+Usage: `html2text [filename [encoding]]`
+
+| Option                                                 | Description
+|--------------------------------------------------------|---------------------------------------------------
+| `--version`                                            | Show program's version number and exit
+| `-h`, `--help`                                         | Show this help message and exit
+| `--ignore-links`                                       | Don't include any formatting for links
+|`--escape-all`                                          | Escape all special characters.  Output is less readable, but avoids corner case formatting issues.
+| `--reference-links`                                    | Use reference links instead of links to create markdown
+| `--mark-code`                                          | Mark preformatted and code blocks with [code]...[/code]
+
+For a complete list of options see the [docs](https://github.com/Alir3z4/html2text/blob/master/docs/usage.md)
+
+
+Or you can use it from within `Python`:
+
+```
+>>> import html2text
+>>>
+>>> print(html2text.html2text("<p><strong>Zed's</strong> dead baby, <em>Zed's</em> dead.</p>"))
+**Zed's** dead baby, _Zed's_ dead.
+
 ```
 
-Paste it in a `something.py` file and try it out!
 
-Installation: `pip install curtsies`
+Or with some configuration options:
+```
+>>> import html2text
+>>>
+>>> h = html2text.HTML2Text()
+>>> # Ignore converting links from HTML
+>>> h.ignore_links = True
+>>> print h.handle("<p>Hello, <a href='https://www.google.com/earth/'>world</a>!")
+Hello, world!
 
-[Documentation](http://curtsies.readthedocs.org/en/latest/)
+>>> print(h.handle("<p>Hello, <a href='https://www.google.com/earth/'>world</a>!"))
 
-Primer
-------
+Hello, world!
 
-[FmtStr](http://curtsies.readthedocs.org/en/latest/FmtStr.html) objects are strings formatted with
-colors and styles displayable in a terminal with [ANSI escape sequences](http://en.wikipedia.org/wiki/ANSI_escape_code>`_).
+>>> # Don't Ignore links anymore, I like links
+>>> h.ignore_links = False
+>>> print(h.handle("<p>Hello, <a href='https://www.google.com/earth/'>world</a>!"))
+Hello, [world](https://www.google.com/earth/)!
 
-![](https://i.imgur.com/bRLI134.png)
+```
 
-[FSArray](http://curtsies.readthedocs.org/en/latest/FSArray.html) objects contain multiple such strings
-with each formatted string on its own row, and FSArray
-objects can be superimposed on each other
-to build complex grids of colored and styled characters through composition.
+*Originally written by Aaron Swartz. This code is distributed under the GPLv3.*
 
-(the import statement shown below is outdated)
 
-![](http://i.imgur.com/rvTRPv1.png)
+## How to install
 
-Such grids of characters can be rendered to the terminal in alternate screen mode
-(no history, like `Vim`, `top` etc.) by [FullscreenWindow](http://curtsies.readthedocs.org/en/latest/window.html#curtsies.window.FullscreenWindow) objects
-or normal history-preserving screen by [CursorAwareWindow](http://curtsies.readthedocs.org/en/latest/window.html#curtsies.window.CursorAwareWindow) objects.
-User keyboard input events like pressing the up arrow key are detected by an
-[Input](http://curtsies.readthedocs.org/en/latest/input.html) object.
+`html2text` is available on pypi
+https://pypi.org/project/html2text/
 
-Examples
---------
+```
+$ pip install html2text
+```
 
-* [Tic-Tac-Toe](/examples/tictactoeexample.py)
 
-![](http://i.imgur.com/AucB55B.png)
+## How to run unit tests
 
-* [Avoid the X's game](/examples/gameexample.py)
+    tox
 
-![](http://i.imgur.com/nv1RQd3.png)
+To see the coverage results:
 
-* [Bpython-curtsies uses curtsies](http://ballingt.com/2013/12/21/bpython-curtsies.html)
+    coverage html
 
-[![](http://i.imgur.com/r7rZiBS.png)](http://www.youtube.com/watch?v=lwbpC4IJlyA)
+then open the `./htmlcov/index.html` file in your browser.
 
-* [More examples](/examples)
+## Documentation
 
-About
------
-
-* [Curtsies Documentation](http://curtsies.readthedocs.org/en/latest/)
-* Curtsies was written to for [bpython-curtsies](http://ballingt.com/2013/12/21/bpython-curtsies.html)
-* `#bpython` on irc is a good place to talk about Curtsies, but feel free
-  to open an issue if you're having a problem!
-* Thanks to the many contributors!
-* If all you need are colored strings, consider one of these [other
-  libraries](http://curtsies.readthedocs.io/en/latest/FmtStr.html#fmtstr-rationale)!
+Documentation lives [here](https://github.com/Alir3z4/html2text/blob/master/docs/usage.md)

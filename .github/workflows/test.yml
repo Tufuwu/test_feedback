@@ -9,36 +9,41 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
-
+        python-version: [3.8, 3.9, pypy-3.7]
+        toxenv: [black, flake8, mypy, isort, py38, py39, pypy3]
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        pip install pyte coverage mock
-        python setup.py install
-
-    - name: Run tests
-      run: nosetests .
-
-  notify:
-    if: always()
-    runs-on: ubuntu-22.04
+        python -m pip install --upgrade pip
+        pip install tox
+    - name: Run Tox
+      env:
+        TOXENV: ${{ matrix.toxenv }}
+      run: tox -e ${{ matrix.toxenv }}
+  coverage:
+    runs-on: ubuntu-latest
     steps:
-    - name: Send notification
-      uses: rtCamp/action-slack-notify@v2
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
       with:
-        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        message: "Build completed"
-    env:
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox coveralls
+    - name: Run Tox
+      run: tox
+    - name: Coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: coveralls
