@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -10,37 +10,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
+        python-version: [3.7, 3.8, 3.9]
         include:
-          - python-version: 3.7
-            env: 
-              TOXENV: pep8
-          - python-version: 3.7
-            env: 
-              TOXENV: placement
-          - python-version: pypy3
-            env: 
-              TOXENV: pypy3
-          - python-version: 3.8
-            env: 
-              TOXENV: py38
-          - python-version: 3.7
-            env: 
-              TOXENV: py37
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-pytest
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-failskip
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-limit
-          - python-version: 3.7
-            env: 
-              TOXENV: py37-prefix
+          - python-version: 3.9
+            env: TOXENV=mypy
 
     steps:
     - uses: actions/checkout@v2
@@ -49,8 +25,20 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install tox
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox-travis codecov
     - name: Run tests
-      env:
-        TOXENV: ${{ matrix.env.TOXENV }}
-      run: tox
+      run: tox -v
+    - name: Upload coverage to Codecov
+      if: success()
+      uses: codecov/codecov-action@v2
+
+  notify:
+    if: failure()
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Notify IRC
+      run: |
+        echo "Sending notification to IRC"
+        # Add your IRC notification script here

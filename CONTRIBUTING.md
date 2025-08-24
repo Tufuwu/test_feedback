@@ -1,52 +1,35 @@
+<!---
 
-Gabbi gets better because of the contributions from the people who use
-it. These contributions come in many forms:
+This file serves as an entry point for GitHub's Contributing
+Guidelines [1] only.
 
-* Joining the #gabbi channel on Freenode IRC at freenode.net and
-  having a chat.
-* Improvements to make the documentation more complete, more correct
-  and typo free.
-* Reporting and reviewing bugs in the
-  [issues](https://github.com/cdent/gabbi/issues)
-* Providing [pull requests](https://github.com/cdent/gabbi/pulls)
-  containing fixes and new features. See [below](#pull-requests) for
-  guidelines.
+GitHub doesn't render rST very well, especially in respect to internal
+hyperlink targets and cross-references [2]. People also tend to
+confuse rST and Markdown syntax. Therefore, instead of keeping the
+contents here (and including from rST documentation under doc/), link
+to the Sphinx generated docs is provided below.
 
-If you have an idea for a new feature it is best to review the
-[Ideas](https://github.com/cdent/gabbi/wiki/Ideas) wiki page and the
-existing issues and pull requests to see if there is existing work you
-can contribute to. It's also worthwhile to ask around in IRC.
 
-In general the default stance with gabbi is to avoid adding new features
-if we can come up with some way to use the existing features to solve
-the requirements of your tests. This helps to keep the test format
-as clean and readable as possible.
+[1] https://github.com/blog/1184-contributing-guidelines
+[2] http://docutils.sourceforge.net/docs/user/rst/quickref.html#hyperlink-targets
 
-If you reach an impasse, create an issue and provide as much info as you
-can about your situation and together we can try to figure it out.
+-->
 
-# Pull Requests
+# Certbot Contributing Guide
 
-If you want to make a pull request, fork the gabbi repository and create
-a new branch that will contain your changes. Name the branch something
-meaningful and related to your change.
+Hi! Welcome to the Certbot project. We look forward to collaborating with you.
 
-See the "Testing and Developing Gabbi" section of the the `README` for
-information on setting up a reasonable working environment.
+If you're reporting a bug in Certbot, please make sure to include:
+ - The version of Certbot you're running.
+ - The operating system you're running it on.
+ - The commands you ran.
+ - What you expected to happen, and
+ - What actually happened.
 
-You should provide verbose commit messages on each of your commits. You
-should not feel obliged to squash your commits into one commit. We want
-to the see the full expression of your process and thinking.
+If you're a developer, we have some helpful information in our
+[Developer's Guide](https://certbot.eff.org/docs/contributing.html) to get you
+started. In particular, we recommend you read these sections 
 
-When you push your branch back to Github please never force push.
-
-If your pull request receives some comments and you need to make some
-changes, please do them as _an additional commit_ on the branch used for
-the pull request.
-
-Any code you submit should follow the rules of
-[pep8](https://www.python.org/dev/peps/pep-0008/). You can test that
-it does by running `tox -epep8` in your checkout. Note that when you
-run that the code will also be evaluated to be sure it follows some
-standards established in the OpenStack development community (mostly
-to do with import handling and line breaks).
+ - [Finding issues to work on](https://certbot.eff.org/docs/contributing.html#find-issues-to-work-on)
+ - [Coding style](https://certbot.eff.org/docs/contributing.html#coding-style)
+ - [Submitting a pull request](https://certbot.eff.org/docs/contributing.html#submitting-a-pull-request)
