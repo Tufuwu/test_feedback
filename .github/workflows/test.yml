@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -9,20 +9,23 @@ on:
       - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        os: [ubuntu-22.04]
+        python-version: [3.7, 3.9]
+        h5py-version: ["==2.6", "==2.10", "==3.0", "==3.1"]
+        exclude:
+          - python-version: 3.7
+            h5py-version: "==3.0"
+          - python-version: 3.7
+            h5py-version: "==3.1"
         include:
-          - python-version: "3.7"
-            env: TOXENV=py37
-          - python-version: "3.8"
-            env: TOXENV=py38
-          - python-version: "3.9"
-            env: TOXENV=py39
-          - python-version: "3.9"
-            env: TOXENV=cov
+          - os: ubuntu-22.04
+            python-version: 3.9
+            h5py-version: "==2.10"
+            arch: ppc64le
 
     steps:
     - uses: actions/checkout@v2
@@ -34,12 +37,14 @@ jobs:
 
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc libhdf5-serial-dev libblas-dev liblapack-dev libatlas-base-dev libquadmath0
         python -m pip install --upgrade pip
-        pip install -U tox coveralls
+        pip install -U numpy Cython
+        pip install h5py${{ matrix.h5py-version }}
+        pip install -r requirements_tests.txt
+        pip install .
+        pip install -e examples/example_hdf5storage_marshaller_plugin
 
     - name: Run tests
-      run: tox
-
-    - name: Upload coverage to Coveralls
-      if: env.TOXENV == 'cov'
-      run: coveralls
+      run: pytest
