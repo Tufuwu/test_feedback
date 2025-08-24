@@ -11,31 +11,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: ['3.8', '3.9']
+        python-version: [3.9, 3.8]
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        pip install .
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install rednose coverage coveralls nose
-
-    - name: Run tests
+        pip install nexpy
+    - name: Test with pytest
       run: |
-        nosetests test --rednose --verbosity=3 --with-coverage --cover-package ncclient
-
-    - name: Upload coverage to Coveralls
-      env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: coveralls
+        pip install pytest
+        pytest
