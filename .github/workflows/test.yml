@@ -10,48 +10,71 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
-    env:
-      PYTHONHASHSEED: 0
+        python-version: ['3.6', '3.8', '3.9']
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: make travis-setup
-      - name: Run tests
-        run: make ci
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+        python setup.py -q install
+    - name: Run tests
+      run: nosetests --with-coverage --cover-package=btcde
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.8'
+      uses: codecov/codecov-action@v2
 
-  test-pypy:
-    runs-on: ubuntu-22.04
+  test-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up PyPy
-        uses: actions/setup-python@v2
-        with:
-          python-version: pypy3
-      - name: Install dependencies
-        run: |
-          pip install termcolor==1.1.0 pytest==6.2.4 pytest-xdist==2.3.0 dataclasses==0.8
-      - name: Run tests
-        run: py.test -n auto
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+        pip install wheel
+        python setup.py -q install
+    - name: Deploy to Test PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: |
+        pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
-  coverage:
-    runs-on: ubuntu-22.04
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: Install dependencies
-        run: make travis-setup
-      - name: Run coverage
-        run: make coverage
-      - name: Upload coverage to Codecov
-        run: bash <(curl -s https://codecov.io/bash)
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+        pip install wheel
+        python setup.py -q install
+    - name: Deploy to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
