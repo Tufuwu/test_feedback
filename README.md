@@ -1,202 +1,168 @@
-# εxodus standalone
+Census Geocode
+--------------
 
-[![Build Status](https://github.com/Exodus-Privacy/exodus-standalone/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/Exodus-Privacy/exodus-standalone/actions/workflows/main.yml)
+Census Geocode is a light weight Python wrapper for the US Census [Geocoder API](http://geocoding.geo.census.gov/geocoder/), compatible with  Python 3. It comes packaged with a simple command line tool for geocoding an address to a longitude and latitude, or a batch file into a parsed address and coordinates.
 
-εxodus CLI client for local APK static analysis.
+It's strongly recommended to review the [Census Geocoder docs](https://www.census.gov/programs-surveys/geography/technical-documentation/complete-technical-documentation/census-geocoder.html) before using this module.
 
-## Summary
+Basic example:
 
-- [**Using Docker**](#using-docker)
-- [**Manual usage**](#manual-usage)
-  - [**Installation**](#installation)
-  - [**Analyze an APK file**](#analyze-an-apk-file)
-  - [**Download an APK from an εxodus instance**](#download-an-apk-from-an-εxodus-instance)
-- [**Continuous Integration**](#continuous-integration)
+```python
+import censusgeocode as cg
 
-## Using Docker
-
-The easiest way to analyze an APK is to use [our Docker image](https://hub.docker.com/r/exodusprivacy/exodus-standalone).
-
-Simply go to the directory where the APK file is and run:
-
-```bash
-docker run -v $(pwd)/<your apk file>:/app.apk --rm -i exodusprivacy/exodus-standalone
+cg.coordinates(x=-76, y=41)
+cg.onelineaddress('1600 Pennsylvania Avenue, Washington, DC')
+cg.address('1600 Pennsylvania Avenue', city='Washington', state='DC', zip='20006')
+cg.addressbatch('data/addresses.csv')
 ```
 
-## Manual usage
-
-### Installation
-
-Clone this repository:
-
-```bash
-git clone https://github.com/Exodus-Privacy/exodus-standalone.git
-cd exodus-standalone
+Use the returntype keyword to specify 'locations' or 'geographies'. 'Locations' yields structured information about the address, and 'geographies' yields information about the Census geographies. Geographies is the default.
+```python
+cg.onelineaddress('1600 Pennsylvania Avenue, Washington, DC', returntype='locations')
 ```
 
-Install `dexdump`:
+Queries return a CensusResult object, which is basically a Python list with an extra 'input' property, which the Census returns to tell you how they interpreted your request.
 
-```bash
-sudo apt-get install dexdump
-```
-
-Create Python `virtualenv`:
-
-```bash
-sudo apt-get install virtualenv
-virtualenv venv -p python3
-source venv/bin/activate
-```
-
-Download and install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### Analyze an APK file
-
-#### Usage
-
-```bash
-$ python exodus_analyze.py -h
-Usage: exodus_analyze.py [options] apk_file
-
-Options:
-  -h, --help            show this help message and exit
-  -t, --text            print textual report (default)
-  -j, --json            print JSON report
-  -o OUTPUT_FILE, --output=OUTPUT_FILE
-                        store JSON report in file (requires -j option)
-```
-
-#### Text output
-
-```bash
-python exodus_analyze.py my_apk.apk
-```
-
-be sure to activate the Python `virtualenv` before running `exodus_analyze.py`.
-
-*Example:*
-
-```bash
-=== Informations
-- APK path: /tmp/tmp1gzosyt4/com.semitan.tan.apk
-- APK sum: 8e85737be6911ea817b3b9f6a80290b85befe24ff5f57dc38996874dfde13ba7
-- App version: 5.7.0
-- App version code: 39
-- App name: Tan Network
-- App package: com.semitan.tan
-- App permissions: 9
-    - android.permission.INTERNET
-    - android.permission.ACCESS_NETWORK_STATE
-    - android.permission.ACCESS_FINE_LOCATION
-    - android.permission.WRITE_EXTERNAL_STORAGE
-    - android.permission.READ_PHONE_STATE
-    - android.permission.VIBRATE
-    - com.semitan.tan.permission.C2D_MESSAGE
-    - com.google.android.c2dm.permission.RECEIVE
-    - android.permission.WAKE_LOCK
-- App libraries: 0
-=== Found trackers
- - Google Analytics
- - Google Ads
- - Google DoubleClick
-```
-
-#### JSON output
-
-```bash
-python exodus_analyze.py -j [-o report.json] my_apk.apk
-```
-
-be sure to activate the Python `virtualenv` before running `exodus_analyze.py`.
-
-*Example:*
-
-```json
+```python
+>>> result = cg.coordinates(x=-76, y=41)
+>>> result.input
 {
-  "trackers": [
-    {
-      "id": 70,
-      "name": "Facebook Share"
+    u'vintage': {
+        u'vintageName': u'Current_Current',
+        u'id': u'4',
+        u'vintageDescription': u'Current Vintage - Current Benchmark',
+        u'isDefault': True
     },
-    [...]
-  ],
-  "apk": {
-    "path": "com.johnson.nett.apk",
-    "checksum": "70b6f0d9df432c66351a587df7b65bea160de59e791be420f0e68b2fc435429f"
-  },
-  "application": {
-    "version_code": "15",
-    "name": "Nett",
-    "permissions": [
-      "android.permission.INTERNET",
-      "android.permission.ACCESS_NETWORK_STATE",
-      "android.permission.WRITE_EXTERNAL_STORAGE",
-      "android.permission.READ_PHONE_STATE",
-      "android.permission.READ_EXTERNAL_STORAGE",
-      "android.permission.WAKE_LOCK",
-      "com.google.android.c2dm.permission.RECEIVE",
-      "com.johnson.nett.permission.C2D_MESSAGE"
-    ],
-    "version_name": "1.1.12",
-    "libraries": [],
-    "handle": "com.johnson.nett"
-  }
+    u'benchmark': {
+        u'benchmarkName': u'Public_AR_Current',
+        u'id': u'4',
+        u'isDefault': False,
+        u'benchmarkDescription': u'Public Address Ranges - Current Benchmark'
+    },
+    u'location': {
+        u'y': 41.0,
+        u'x': -76.0
+    }
 }
+>>> result
+[{
+    '2010 Census Blocks': [{
+        'AREALAND': 1409023,
+        'AREAWATER': 0,
+        'BASENAME': '1045',
+        'BLKGRP': '1',
+        'BLOCK': '1045',
+        'CENTLAT': '+40.9957436',
+        'CENTLON': '-076.0089338',
+        'COUNTY': '079',
+        'FUNCSTAT': 'S',
+        'GEOID': '420792166001045',
+        'INTPTLAT': '+40.9957436',
+        'INTPTLON': '-076.0089338',
+        'LSADC': 'BK',
+        'LWBLKTYP': 'L',
+        'MTFCC': 'G5040',
+        'NAME': 'Block 1045',
+        'OBJECTID': 9940449,
+        'OID': 210404020212114,
+        'STATE': '42',
+        'SUFFIX': '',
+        'TRACT': '216600'
+    }],
+    'Census Tracts': [{
+        # snip 
+        'NAME': 'Census Tract 2166',
+        'OBJECTID': 61245,
+        'OID': 20790277158250,
+        'STATE': '42',
+        'TRACT': '216600'
+    }],
+    'Counties': [{
+        # snip
+        'NAME': 'Luzerne County',
+        'OBJECTID': 866,
+        'OID': 27590277115518,
+        'STATE': '42'
+    }],
+    'States': [{
+        # snip
+        'NAME': 'Pennsylvania',
+        'REGION': '1',
+        'STATE': '42',
+        'STATENS': '01779798',
+        'STUSAB': 'PA'
+    }]
+}]
 ```
 
-#### Pitfalls
+### Advanced
 
-This tool uses `dexdump` and only provides `GNU/Linux x86_64` version of it.
+By default, the geocoder uses the "Current" vintage and benchmarks. To use another vintage or benchmark, use the `CensusGeocode` class:
+````python
+from censusgeocode import CensusGeocode
+cg = CensusGeocode(benchmark='Public_AR_Current', vintage='Census2020_Current')
+cg.onelineaddress(foobar)
+````
 
-### Download an APK from an εxodus instance
+The Census may update the available benchmarks and vintages. Review the Census Geocoder docs for the currently available [benchmarks](https://geocoding.geo.census.gov/geocoder/benchmarks) and [vintages](https://geocoding.geo.census.gov/geocoder/vintages?form).
 
-Create `config.py` file in the project directory specifying:
+## Command line tool
 
-```bash
-CONFIG = {
-    'username': 'alice',
-    'password': 'bob',
-    'host': 'http://localhost:8000'
-}
+The `censusgeocode` tool has two settings.
+
+At the simplest, it takes one argument, an address, and returns a comma-delimited longitude, latitude pair.
+````bash
+censusgeocode '100 Fifth Avenue, New York, NY'
+-73.992195,40.73797
+
+censusgeocode '1600 Pennsylvania Avenue, Washington DC'
+-77.03535,38.898754
+````
+
+The Census geocoder is reasonably good at recognizing non-standard addresses.
+````bash
+censusgeocode 'Hollywood & Vine, LA, CA'
+-118.32668,34.101624
+````
+
+It can also use the Census Geocoder's batch function to process an entire file. The file must be comma-delimited, have no header, and include the following columns:
+````
+unique id, street address, state, city, zip code
+````
+
+The geocoder can read from a file:
+````
+censusgeocode --csv tests/fixtures/batch.csv
+````
+([example file](https://github.com/fitnr/censusgeocode/blob/master/tests/fixtures/batch.csv))
+
+Or from stdin, using `-` as the filename:
+````
+head tests/fixtures/batch.csv | censusgeocode --csv -
+````
+
+According to the Census docs, the batch geocoder is limited to 10,000 rows.
+
+The output will be a CSV file (with a header) and the columns:
+* id
+* address
+* match
+* matchtype
+* parsed
+* tigerlineid
+* side
+* lat
+* lon
+
+If your data doesn't have a unique id, try adding line numbers with the Unix command line utility `nl`:
+```
+nl -s , input.csv | censusgeocode --csv - > output.csv
 ```
 
-Run
+## License
 
-```bash
-python exodus_download.py 15 /tmp/
-```
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-be sure to activate the Python `virtualenv` before running `exodus_download.py`.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-#### Example of output
-
-```bash
-python exodus_download.py 15 /tmp/
-Successfully logged in
-Downloading the APK ...
-APK successfully downloaded: /tmp/fr.meteo.apk
-```
-
-## Continuous Integration
-
-You can use εxodus-standalone in your CI pipelines.
-
-Below are listed some examples of how to integrate it.
-
-:warning: Please note that the task will fail if it finds **any tracker**.
-
-### GitLab CI/CD
-
-```yml
-exodus_scan:
-  stage: audit
-  image:
-    name: exodusprivacy/exodus-standalone:latest
-    entrypoint: [""]
-  script:
-    - python /exodus_analyze.py [YOUR_APK_PATH]
-```
+You should have received a copy of the GNU General Public License along with this program.  If not, see http://www.gnu.org/licenses/.
