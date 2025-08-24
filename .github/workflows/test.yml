@@ -1,21 +1,26 @@
-name: CI
+name: Python package
 
 on:
   push:
     branches:
       - main
+      - 'releases/*'
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: 10
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -25,14 +30,19 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git build-essential automake libtool python-dev gettext swig
-        pip install flake8
+        sudo apt-get install -y libicu-dev
+        pip install -e .
+        pip install pyicu coverage nose twine
 
-    - name: Run flake8
-      run: flake8 --version
-
-    - name: Compile AutoBouquetsMaker enigma2 plugin
+    - name: Test with nosetests
       run: |
-        python -m compileall .
-        find . -type f -name "*.po" -exec msgfmt {} -o {}.mo \;
-        flake8 --ignore=W191,E128,E501,E722 . --exit-zero
+        nosetests --with-coverage --cover-package=fingerprints --cover-erase
+
+    - name: Build and publish
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      env:
+        TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+      run: |
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
