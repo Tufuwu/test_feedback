@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -9,16 +9,11 @@ on:
       - main
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
-        include:
-          - python-version: 3.7
-            env: TOXENV=cover
-          - python-version: 3.7
-            env: TOXENV=black
+        python-version: [3.6, 3.7, 3.8, 3.9, 3.10, pypy-3.7]
 
     steps:
     - uses: actions/checkout@v2
@@ -30,26 +25,22 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm i -g elm
-        pip install tox-travis coveralls
-
-    - name: Create tox.ini
-      run: |
-        echo "[tox]" > tox.ini
-        echo "envlist = py37, cover, black" >> tox.ini
-        echo "[testenv]" >> tox.ini
-        echo "deps = pytest" >> tox.ini
-        echo "commands = pytest" >> tox.ini
-        echo "[testenv:cover]" >> tox.ini
-        echo "deps = coverage" >> tox.ini
-        echo "commands = coverage run -m pytest" >> tox.ini
-        echo "[testenv:black]" >> tox.ini
-        echo "deps = black" >> tox.ini
-        echo "commands = black --check ." >> tox.ini
+        python -m pip install --upgrade pip
+        pip install coverage
 
     - name: Run tests
-      run: tox --skip-missing-interpreters
+      run: coverage run --source=olefile -m nose tests
 
     - name: Upload coverage to Coveralls
       if: success()
-      run: coveralls
+      run: |
+        pip install coveralls
+        coveralls
+
+    - name: Run after script
+      if: always()
+      run: |
+        coverage report
+        pip install pycodestyle pyflakes
+        pyflakes .
+        pycodestyle --statistics --count .
