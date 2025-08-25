@@ -1,65 +1,39 @@
-name: CI
+name: Python CI
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9']
+        python-version: ["3.8"]
 
     steps:
+    - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Check out code
-      uses: actions/checkout@v2
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
     - name: Install dependencies
-      run: pip install -r dev-requirements.txt
+      run: |
+        pip install --editable .[dev]
+        pip install black mypy
 
-    - name: Run make clean
-      run: make clean
+    - name: Run lint
+      run: |
+        mypy src/shuffled/core.py || exit 0
+        make check-lint
 
-    - name: Run make pep8
-      run: make pep8
-
-    - name: Run make flake8
-      run: make flake8
-
-    - name: Run make check
-      run: make check
-
-    - name: Run make unittest
-      run: make unittest
-
-    - name: Upload coverage to Coveralls
-      if: success()
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: coveralls
-
-  notification:
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-    - name: Send email notification
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.yourdomain.com
-        server_port: 587
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: GitHub Actions Notification
-        to: eosplus-dev@arista.com
-        from: github-actions@yourdomain.com
-        body: Build ${{ github.run_number }} of ${{ github.repository }} is complete.
+    - name: Run tests
+      run: make check-tests

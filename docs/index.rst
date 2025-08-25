@@ -1,45 +1,46 @@
-.. _intro:
+.. shuffled documentation master file, created by
+   sphinx-quickstart on Fri Jun  3 19:14:58 2016.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-############
-Introduction
-############
-
-The Python Client for eAPI (pyeapi) is a native Python library wrapper around
-Arista EOS eAPI.  It provides a set of Python language bindings for configuring
-Arista EOS nodes.
-
-The Python library can be used to communicate with EOS either locally
-(on-box) or remotely (off-box). It uses a standard INI-style configuration file
-to specify one or more nodes and connection profiles.
-
-The pyeapi library also provides an API layer for building native Python
-objects to interact with the destination nodes. The API layer is a convenient
-implementation for working with the EOS configuration and is extensible for
-developing custom solutions.
-
-This library is freely provided to the open source community for building
-robust applications using Arista EOS. Support is provided as best effort
-through Github issues.
-
+Shuffled's documentation
+========================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   install
-   quickstart
-   configfile
-   modules
-   requirements
-   examples
-   contribute
-   release-notes
-   support
-   license
+How to Use
+----------
 
+.. automodule:: shuffled
+   :members:
+   :undoc-members:
+   :inherited-members:
 
-******************
+Internal APIs
+-------------
+
+.. note:: Use the following APIs at your own risk.
+
+Index Randomization
+~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: shuffled.crypto
+   :members:
+   :undoc-members:
+   :inherited-members:
+
+Generalized-Feistel Cipher
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: shuffled.feistel
+   :members:
+   :undoc-members:
+   :inherited-members:
+
 Indices and tables
-******************
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
+* :ref:`search`
