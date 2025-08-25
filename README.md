@@ -1,487 +1,256 @@
-pytorch_memlab
-======
-[![Build Status](https://travis-ci.com/Stonesjtu/pytorch_memlab.svg?token=vyTdxHbi1PCRzV6disHp&branch=master)](https://travis-ci.com/Stonesjtu/pytorch_memlab)
-![PyPI](https://img.shields.io/pypi/v/pytorch_memlab.svg)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Stonesjtu/pytorch_memlab.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Stonesjtu/pytorch_memlab/context:python)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/pytorch_memlab.svg)
+# pymysensors [![Build Status][build-badge]][build]
 
-A simple and accurate **CUDA** memory management laboratory for pytorch,
-it consists of different parts about the memory:
+Python API for talking to a [MySensors gateway](http://www.mysensors.org/). Currently supports serial protocol v1.4, v1.5, v2.0 - v2.2. Not all features of v2.x are implemented yet.
 
-- Features:
+- Supports smartsleep with serial API v2.x.
+- Supports the MQTT client gateway with serial API v2.x.
+- Supports OTA updates, for both [DualOptiboot](https://github.com/mysensors/DualOptiboot) and [MYSBootloader](https://github.com/mysensors/MySensorsBootloaderRF24) bootloaders.
+- All gateway instances, serial, tcp (ethernet) or mqtt will run in separate threads.
+- As an alternative to running the gateway in its own thread, there are experimental implementations of all gateways using asyncio.
 
-  - Memory Profiler: A `line_profiler` style CUDA memory profiler with simple API.
-  - Memory Reporter: A reporter to inspect tensors occupying the CUDA memory.
-  - Courtesy: An interesting feature to temporarily move all the CUDA tensors into
-    CPU memory for courtesy, and of course the backward transferring.
-  - IPython support through `%mlrun`/`%%mlrun` line/cell magic
-    commands.
+## Requirements
 
+pymysensors requires Python 3.5.3+.
 
-- Table of Contents
-  * [Installation](#installation)
-  * [User-Doc](#user-doc)
-    + [Memory Profiler](#memory-profiler)
-    + [IPython support](#ipython-support)
-    + [Memory Reporter](#memory-reporter)
-    + [Courtesy](#courtesy)
-    + [ACK](#ack)
-  * [CHANGES](#changes)
+## Installation
 
-Installation
------
+You can easily install it from PyPI:
 
-- Released version:
-```bash
-pip install pytorch_memlab
+```pip3 install pymysensors```
+
+## Usage
+
+Currently the API is best used by implementing a callback handler
+
+```py
+import mysensors.mysensors as mysensors
+
+def event(message):
+    """Callback for mysensors updates."""
+    print('sensor_update ' + str(message.node_id))
+
+GATEWAY = mysensors.SerialGateway('/dev/ttyACM0', event)
+GATEWAY.start()
 ```
 
-- Newest version:
-```bash
-pip install git+https://github.com/stonesjtu/pytorch_memlab
+In the above example pymysensors will call "event" whenever a node in the Mysensors network has been updated. The message passed to the callback handler has the following data:
+
+```txt
+Message
+    gateway - the gateway instance
+    node_id - the sensor node identifier
+    child_id - the child sensor id
+    type - the message type, for example "set" or "presentation" (int)
+    ack - True is message was an ACK, false otherwise (0 or 1)
+    sub_type - the message sub_type (int)
+    payload - the payload of the message (string)
 ```
 
-What's for
------
+_Note: The content of the sub_type differs according to the context. In presentation messages, the sub_type denotes S_TYPE data (such as S_INFO). In 'set' and 'req' messages the sub_type denotes V_TYPE data (such as V_TEXT)._
 
-Out-Of-Memory errors in pytorch happen frequently, for new-bees and
-experienced programmers. A common reason is that most people don't really
-learn the underlying memory management philosophy of pytorch and GPUs.
-They wrote memory in-efficient codes and complained about pytorch eating too
-much CUDA memory.
+Symbolic names for the Message types and sub_types are defined in the protocol version-specific const_X.py files.
 
-In this repo, I'm going to share some useful tools to help debugging OOM, or
-to inspect the underlying mechanism if anyone is interested in.
+The data structure of a gateway and it's network is described below.
 
+```txt
+SerialGateway/TCPGateway/MQTTGateway
+    sensors - a dict containing all nodes for the gateway; node is of type Sensor
 
-User-Doc
------
+Sensor - a sensor node
+    children - a dict containing all child sensors for the node
+    sensor_id - node id on the MySensors network
+    type - 17 for node or 18 for repeater
+    sketch_name
+    sketch_version
+    battery_level
+    protocol_version - the mysensors protocol version used by the node
 
-### Memory Profiler
-
-The memory profiler is a modification of python's `line_profiler`, it gives
-the memory usage info for each line of code in the specified function/method.
-
-#### Sample:
-
-```python
-import torch
-from pytorch_memlab import LineProfiler
-
-def inner():
-    torch.nn.Linear(100, 100).cuda()
-
-def outer():
-    linear = torch.nn.Linear(100, 100).cuda()
-    linear2 = torch.nn.Linear(100, 100).cuda()
-    inner()
-
-with LineProfiler(outer, inner) as prof:
-    outer()
-prof.display()
+ChildSensor - a child sensor
+    id - child id on the parent node
+    type - data type, S_HUM, S_TEMP etc.
+    description - the child description sent when presenting the child
+    values - a dictionary of values (V_HUM, V_TEMP, etc.)
 ```
 
-After the script finishes or interrupted by keyboard, it gives the following
-profiling info if you're in a Jupyter notebook:
+Getting the type and values of node 23, child sensor 4 would be performed as follows:
 
-<p align="center"><img src="readme-output.png" width="640"></p>
-
-or the following info if you're in a text-only terminal:
-
-```
-## outer
-
-active_bytes reserved_bytes line  code
-         all            all
-        peak           peak
-       0.00B          0.00B    7  def outer():
-      40.00K          2.00M    8      linear = torch.nn.Linear(100, 100).cuda()
-      80.00K          2.00M    9      linear2 = torch.nn.Linear(100, 100).cuda()
-     120.00K          2.00M   10      inner()
-
-
-## inner
-
-active_bytes reserved_bytes line  code
-         all            all
-        peak           peak
-      80.00K          2.00M    4  def inner():
-     120.00K          2.00M    5      torch.nn.Linear(100, 100).cuda()
+```py
+s_type = GATEWAY.sensors[23].children[4].type
+values = GATEWAY.sensors[23].children[4].values
 ```
 
-An explanation of what each column means can be found in the [Torch documentation](https://pytorch.org/docs/stable/cuda.html#torch.cuda.memory_stats). The name of any field from `memory_stats()`
-can be passed to `display()` to view the corresponding statistic.
+Similarly, printing all the sketch names of the found nodes could look like this:
 
-If you use `profile` decorator, the memory statistics are collected during
-multiple runs and only the maximum one is displayed at the end.
-We also provide a more flexible API called `profile_every` which prints the
-memory info every *N* times of function execution. You can simply replace
-`@profile` with `@profile_every(1)` to print the memory usage for each
-execution.
-
-The `@profile` and `@profile_every` can also be mixed to gain more control
-of the debugging granularity.
-
-- You can also add the decorator in the module class:
-
-```python
-class Net(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-    @profile
-    def forward(self, inp):
-        #do_something
+```py
+for node in GATEWAY.sensors.values():
+    print(node.sketch_name)
 ```
 
-- The *Line Profiler* profiles the memory usage of CUDA device 0 by default,
-you may want to switch the device to profile by `set_target_gpu`. The gpu
-selection is globally,  which means you have to remember which gpu you are
-profiling on during the whole process:
+Getting a child object inside the event function could be:
 
-```python
-import torch
-from pytorch_memlab import profile, set_target_gpu
-@profile
-def func():
-    net1 = torch.nn.Linear(1024, 1024).cuda(0)
-    set_target_gpu(1)
-    net2 = torch.nn.Linear(1024, 1024).cuda(1)
-    set_target_gpu(0)
-    net3 = torch.nn.Linear(1024, 1024).cuda(0)
-
-func()
+```py
+    if GATEWAY.is_sensor(message.node_id, message.child_id):
+        child = GATEWAY.sensors[message.node_id].children[message.child_id]
+    else:
+        print("Child not available yet.")
 ```
 
+To update a node child sensor value and send it to the node, use the set_child_value method in the Gateway class:
 
-More samples can be found in `test/test_line_profiler.py`
-
-### IPython support
-
-Make sure you have `IPython` installed, or have installed `pytorch-memlab` with
-`pip install pytorch-memlab[ipython]`.
-
-First, load the extension:
-
-```python
-%load_ext pytorch_memlab
+```py
+# To set sensor 1 (int), child 1 (int), sub-type V_LIGHT (= 2) (int), with value 1.
+GATEWAY.set_child_value(1, 1, 2, 1)
 ```
 
-This makes the `%mlrun` and `%%mlrun` line/cell magics available for use. For
-example, in a new cell run the following to profile an entire cell
+### Persistence
 
-```python
-%%mlrun -f func
-import torch
-from pytorch_memlab import profile, set_target_gpu
-def func():
-    net1 = torch.nn.Linear(1024, 1024).cuda(0)
-    set_target_gpu(1)
-    net2 = torch.nn.Linear(1024, 1024).cuda(1)
-    set_target_gpu(0)
-    net3 = torch.nn.Linear(1024, 1024).cuda(0)
+With persistence mode on, you can restart the gateway without
+having to restart each individual node in your sensor network. To enable persistence mode, the keyword argument `persistence`
+in the constructor should be True. A path to the config file
+can be specified as the keyword argument `persistence_file`. The file type (.pickle or .json) will set which persistence protocol to use, pickle or json. JSON files can be read using a normal text editor. Saving to the persistence file will be done on a schedule every 10 seconds if an update has been done since the last save. Make sure you start the persistence saving before starting the gateway.
+
+```py
+GATEWAY.start_persistence()
 ```
 
-Or you can invoke the profiler for a single statement on via the `%mlrun` cell
-magic.
+### Protocol version
 
-```python
-import torch
-from pytorch_memlab import profile, set_target_gpu
-def func(input_size):
-    net1 = torch.nn.Linear(input_size, 1024).cuda(0)
-%mlrun -f func func(2048)
+Set the keyword argument `protocol_version` to set which version of the MySensors serial API to use. The default value is `'1.4'`. Set the `protocol_version` to the version you're using.
+
+### Serial gateway
+
+The serial gateway also supports setting the baudrate, read timeout and reconnect timeout.
+
+```py
+import mysensors.mysensors as mysensors
+
+def event(message):
+    """Callback for mysensors updates."""
+    print("sensor_update " + str(message.node_id))
+
+GATEWAY = mysensors.SerialGateway(
+  '/dev/ttyACM0', baud=115200, timeout=1.0, reconnect_timeout=10.0,
+  event_callback=event, persistence=True,
+  persistence_file='somefolder/mysensors.pickle', protocol_version='2.2')
+GATEWAY.start_persistence() # optional, remove this line if you don't need persistence.
+GATEWAY.start()
 ```
 
-See `%mlrun?` for help on what arguments are supported. You can set the GPU
-device to profile, dump profiling results to a file, and return the
-`LineProfiler` object for post-profile inspection.
+There are two other gateway types supported besides the serial gateway: the tcp-ethernet gateway and the MQTT gateway.
 
-Find out more by checking out the [demo Jupyter notebook](./demo.ipynb)
+### TCP ethernet gateway
 
+The ethernet gateway is initialized similar to the serial gateway. The ethernet gateway supports setting the tcp host port, receive timeout and reconnect timeout, besides the common settings and the host ip address.
 
-### Memory Reporter
-
-As *Memory Profiler* only gives the overall memory usage information by lines,
-a more low-level memory usage information can be obtained by *Memory Reporter*.
-
-*Memory reporter* iterates all the `Tensor` objects and gets the underlying
-`Storage` object to get the actual memory usage instead of the surface
-`Tensor.size`.
-
-#### Sample
-
-- A minimal one:
-
-```python
-import torch
-from pytorch_memlab import MemReporter
-linear = torch.nn.Linear(1024, 1024).cuda()
-reporter = MemReporter()
-reporter.report()
-```
-outputs:
-```
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-Parameter0                                      (1024, 1024)     4.00M
-Parameter1                                           (1024,)     4.00K
--------------------------------------------------------------------------------
-Total Tensors: 1049600  Used Memory: 4.00M
-The allocated memory on cuda:0: 4.00M
--------------------------------------------------------------------------------
+```py
+GATEWAY = mysensors.TCPGateway(
+  '127.0.0.1', port=5003, timeout=1.0, reconnect_timeout=10.0,
+  event_callback=event, persistence=True,
+  persistence_file='somefolder/mysensors.pickle', protocol_version='1.4')
 ```
 
-- You can also pass in a model object for automatically name inference.
+### MQTT gateway
 
-```python
-import torch
-from pytorch_memlab import MemReporter
+The MQTT gateway requires MySensors serial API v2.0 or greater and the MQTT client gateway example sketch loaded in the gateway device. The gateway also requires an MQTT broker and a python MQTT client interface to the broker. See [mqtt.py](https://github.com/theolind/pymysensors/blob/master/mqtt.py) for an example of how to implement this and initialize the MQTT gateway.
 
-linear = torch.nn.Linear(1024, 1024).cuda()
-inp = torch.Tensor(512, 1024).cuda()
-# pass in a model to automatically infer the tensor names
-reporter = MemReporter(linear)
-out = linear(inp).mean()
-print('========= before backward =========')
-reporter.report()
-out.backward()
-print('========= after backward =========')
-reporter.report()
+### Over the air (OTA) firmware updates
+
+Call `Gateway` method `update_fw` to set one or more nodes for OTA
+firmware update. The method takes three positional arguments and one
+keyword arguement. The first argument should be the node id of the node to
+update. This can also be a list of many node ids. The next two arguments should
+be integers representing the firwmare type and version. The keyword argument is
+optional and should be a path to a hex file with the new firmware.
+
+```py
+GATEWAY.update_fw([1, 2], 1, 2, fw_path='/path/to/firmware.hex')
 ```
 
-outputs:
-```
-========= before backward =========
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-weight                                          (1024, 1024)     4.00M
-bias                                                 (1024,)     4.00K
-Tensor0                                          (512, 1024)     2.00M
-Tensor1                                                 (1,)   512.00B
--------------------------------------------------------------------------------
-Total Tensors: 1573889  Used Memory: 6.00M
-The allocated memory on cuda:0: 6.00M
--------------------------------------------------------------------------------
-========= after backward =========
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-weight                                          (1024, 1024)     4.00M
-weight.grad                                     (1024, 1024)     4.00M
-bias                                                 (1024,)     4.00K
-bias.grad                                            (1024,)     4.00K
-Tensor0                                          (512, 1024)     2.00M
-Tensor1                                                 (1,)   512.00B
--------------------------------------------------------------------------------
-Total Tensors: 2623489  Used Memory: 10.01M
-The allocated memory on cuda:0: 10.01M
--------------------------------------------------------------------------------
-```
+After the `update_fw` method has been called the node(s) will be requested
+to restart when pymysensors Gateway receives the next set message. After
+restart and during the MySensors `begin` method, the node will send a firmware
+config request. The pymysensors library will respond to the config request. If
+the node receives a proper firmware config response it will send a firmware
+request for a block of firmware. The pymysensors library will handle this and
+send a firmware response message. The latter request-response conversation will
+continue until all blocks of firmware are sent. If the CRC of the transmitted
+firmware match the CRC of the firmware config response, the node will restart
+and load the new firmware.
 
+### Gateway id
 
-- The reporter automatically deals with the sharing weights parameters:
+The gateway method `get_gateway_id` will try to return a unique id for the
+gateway. This will be the serial number of the usb device for serial gateways,
+the mac address of the connected gateway for tcp gateways or the publish topic
+prefix (in_prefix) for mqtt gateways.
 
-```python
-import torch
-from pytorch_memlab import MemReporter
+### Connection callbacks
 
-linear = torch.nn.Linear(1024, 1024).cuda()
-linear2 = torch.nn.Linear(1024, 1024).cuda()
-linear2.weight = linear.weight
-container = torch.nn.Sequential(
-    linear, linear2
-)
-inp = torch.Tensor(512, 1024).cuda()
-# pass in a model to automatically infer the tensor names
+It's possible to register two optional callbacks on the gateway that are called
+when the connection is made and when the connection is lost to the gateway
+device. Both callbacks should accept a gateway parameter, which is the gateway
+instance. The connection lost callback should also accept a second parameter
+for possible connection error exception argument. If connection was lost
+without error, eg when disconnecting, the error argument will be `None`.
 
-out = container(inp).mean()
-out.backward()
+**NOTE:**
+The MQTT gateway doesn't support these callbacks since the connection to the
+MQTT broker is handled outside of pymysensors.
 
-# verbose shows how storage is shared across multiple Tensors
-reporter = MemReporter(container)
-reporter.report(verbose=True)
+```py
+def conn_made(gateway):
+  """React when the connection is made to the gateway device."""
+  pass
+
+GATEWAY.on_conn_made = conn_made
+
+def conn_lost(gateway, error):
+  """React when the connection is lost to the gateway device."""
+  pass
+
+GATEWAY.on_conn_lost = conn_lost
 ```
 
-outputs:
-```
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-0.weight                                        (1024, 1024)     4.00M
-0.weight.grad                                   (1024, 1024)     4.00M
-0.bias                                               (1024,)     4.00K
-0.bias.grad                                          (1024,)     4.00K
-1.bias                                               (1024,)     4.00K
-1.bias.grad                                          (1024,)     4.00K
-Tensor0                                          (512, 1024)     2.00M
-Tensor1                                                 (1,)   512.00B
--------------------------------------------------------------------------------
-Total Tensors: 2625537  Used Memory: 10.02M
-The allocated memory on cuda:0: 10.02M
--------------------------------------------------------------------------------
-```
+### Async gateway
 
-- You can better understand the memory layout for more complicated module:
+The serial, TCP and MQTT gateways now also have versions that support asyncio. Use the
+`AsyncSerialGateway` class, `AsyncTCPGateway` class or `AsyncMQTTGateway` class to make a gateway that
+uses asyncio. The following public methods are coroutines in the async gateway:
 
-```python
-import torch
-from pytorch_memlab import MemReporter
+- get_gateway_id
+- start_persistence
+- start
+- stop
+- update_fw
 
-lstm = torch.nn.LSTM(1024, 1024).cuda()
-reporter = MemReporter(lstm)
-reporter.report(verbose=True)
-inp = torch.Tensor(10, 10, 1024).cuda()
-out, _ = lstm(inp)
-out.mean().backward()
-reporter.report(verbose=True)
+See [async_main.py](https://github.com/theolind/pymysensors/blob/master/async_main.py) for an example of how to use this gateway.
+
+## Development
+
+Install the packages needed for development.
+
+```sh
+pip install -r requirements_dev.txt
 ```
 
-As shown below, the `(->)` indicates the re-use of the same storage back-end
-outputs:
-```
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-weight_ih_l0                                    (4096, 1024)    32.03M
-weight_hh_l0(->weight_ih_l0)                    (4096, 1024)     0.00B
-bias_ih_l0(->weight_ih_l0)                           (4096,)     0.00B
-bias_hh_l0(->weight_ih_l0)                           (4096,)     0.00B
-Tensor0                                       (10, 10, 1024)   400.00K
--------------------------------------------------------------------------------
-Total Tensors: 8499200  Used Memory: 32.42M
-The allocated memory on cuda:0: 32.52M
-Memory differs due to the matrix alignment
--------------------------------------------------------------------------------
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-weight_ih_l0                                    (4096, 1024)    32.03M
-weight_ih_l0.grad                               (4096, 1024)    32.03M
-weight_hh_l0(->weight_ih_l0)                    (4096, 1024)     0.00B
-weight_hh_l0.grad(->weight_ih_l0.grad)          (4096, 1024)     0.00B
-bias_ih_l0(->weight_ih_l0)                           (4096,)     0.00B
-bias_ih_l0.grad(->weight_ih_l0.grad)                 (4096,)     0.00B
-bias_hh_l0(->weight_ih_l0)                           (4096,)     0.00B
-bias_hh_l0.grad(->weight_ih_l0.grad)                 (4096,)     0.00B
-Tensor0                                       (10, 10, 1024)   400.00K
-Tensor1                                       (10, 10, 1024)   400.00K
-Tensor2                                        (1, 10, 1024)    40.00K
-Tensor3                                        (1, 10, 1024)    40.00K
--------------------------------------------------------------------------------
-Total Tensors: 17018880         Used Memory: 64.92M
-The allocated memory on cuda:0: 65.11M
-Memory differs due to the matrix alignment
--------------------------------------------------------------------------------
+Use the Makefile to run common development tasks.
+
+```sh
+make
 ```
 
-NOTICE:
-> When forwarding with `grad_mode=True`, pytorch maintains tensor buffers for
-> future Back-Propagation, in C level. So these buffers are not going to be
-> managed or collected by pytorch. But if you store these intermediate results
-> as python variables, then they will be reported.
+### Code formatting
 
-- You can also filter the device to report on by passing extra arguments:
-`report(device=torch.device(0))`
+We use black code formatter to automatically format the code.
+This requires Python 3.6 for development.
 
-- A failed example due to pytorch's C side tensor buffers
-
-In the following example, a temp buffer is created at `inp * (inp + 2)` to
-store both `inp` and `inp + 2`, unfortunately python only knows the existence
-of inp, so we have *2M* memory lost, which is the same size of Tensor `inp`.
-
-```python
-import torch
-from pytorch_memlab import MemReporter
-
-linear = torch.nn.Linear(1024, 1024).cuda()
-inp = torch.Tensor(512, 1024).cuda()
-# pass in a model to automatically infer the tensor names
-reporter = MemReporter(linear)
-out = linear(inp * (inp + 2)).mean()
-reporter.report()
+```sh
+black ./
 ```
 
-outputs:
-```
-Element type                                            Size  Used MEM
--------------------------------------------------------------------------------
-Storage on cuda:0
-weight                                          (1024, 1024)     4.00M
-bias                                                 (1024,)     4.00K
-Tensor0                                          (512, 1024)     2.00M
-Tensor1                                                 (1,)   512.00B
--------------------------------------------------------------------------------
-Total Tensors: 1573889  Used Memory: 6.00M
-The allocated memory on cuda:0: 8.00M
-Memory differs due to the matrix alignment or invisible gradient buffer tensors
--------------------------------------------------------------------------------
-```
+### Release
 
+See the [release instructions](RELEASE.md).
 
-### Courtesy
-
-Sometimes people would like to preempt your running task, but you don't want
-to save checkpoint and then load, actually all they need is GPU resources (
-typically CPU resources and CPU memory is always spare in GPU clusters), so
-you can move all your workspaces from GPU to CPU and then halt your task until
-a restart signal is triggered, instead of saving&loading checkpoints and
-bootstrapping from scratch.
-
-Still developing..... But you can have fun with:
-```python
-from pytorch_memlab import Courtesy
-
-iamcourtesy = Courtesy()
-for i in range(num_iteration):
-    if something_happens:
-        iamcourtesy.yield_memory()
-        wait_for_restart_signal()
-        iamcourtesy.restore()
-```
-
-#### Known Issues
-
-- As is stated above in `Memory_Reporter`, intermediate tensors are not covered
-properly, so you may want to insert such courtesy logics after `backward` or
-before `forward`.
-- Currently the CUDA context of pytorch requires about 1 GB CUDA memory, which
-means even all Tensors are on CPU, 1GB of CUDA memory is wasted, :-(. However
-it's still under investigation if I can fully destroy the context and then
-re-init.
-
-
-### ACK
-
-I suffered a lot debugging weird memory usage during my 3-years of developing
-efficient Deep Learning models, and of course learned a lot from the great
-open source community.
-
-## CHANGES
-
-
-##### 0.2.4 (2021-10-28)
-  - Fix colab error (#35)
-  - Support python3.8 (#38)
-  - Support sparse tensor (#30)
-##### 0.2.3 (2020-12-01)
-  - Fix name mapping in `MemReporter` (#24)
-  - Fix reporter without model input (#22 #25)
-##### 0.2.2 (2020-10-23)
-  - Fix memory leak in `MemReporter`
-##### 0.2.1 (2020-06-18)
-  - Fix `line_profiler` not found
-##### 0.2.0 (2020-06-15)
-  - Add jupyter notebook figure and ipython support
-##### 0.1.0 (2020-04-17)
-  - Add ipython magic support (#8)
-##### 0.0.4 (2019-10-08)
-  - Add gpu switch for line-profiler(#2)
-  - Add device filter for reporter
-##### 0.0.3 (2019-06-15)
-  - Install dependency for pip installation
-##### 0.0.2 (2019-06-04)
-  - Fix statistics shift in loop
-##### 0.0.1 (2019-05-28)
-  - initial release
+[build-badge]: https://github.com/theolind/pymysensors/workflows/Test/badge.svg
+[build]: https://github.com/theolind/pymysensors/actions
