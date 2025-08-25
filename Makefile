@@ -1,45 +1,124 @@
-# gpodder.net API Client
-# Copyright (C) 2009-2013 Thomas Perl and the gPodder Team
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+lint_files=setup.py src/flake8_aaa tests
+rst_files=README.rst CHANGELOG.rst
 
-PACKAGE := mygpoclient
+# Lists of examples to pass through command line checks
+# NOQA examples in /examples/good will fail because CMD does not respect noqa
+# comments in the same way that flake8 does.
+good_examples = $(wildcard examples/good/*.py examples/good/black/*.py) examples/good/noqa/test_cmd.py
+bad_examples = $(wildcard examples/good/noqa/test_0*.py examples/good/black/noqa/test_0*.py examples/bad/*.py)
 
-PYTHON ?= python
-FIND ?= find
-PYTEST ?= $(PYTHON) -m pytest
 
-help:
-	@echo ""
-	@echo "$(MAKE) test ......... Run unit tests"
-	@echo "$(MAKE) clean ........ Clean build directory"
-	@echo "$(MAKE) distclean .... $(MAKE) clean + remove 'dist/'"
-	@echo ""
+# Local dev: Install requirements
+.PHONY: dev
+dev:
+	pip-sync requirements/base.txt requirements/test.txt requirements/dev.txt
 
+# Local dev: Run all tests for available Python versions
+.PHONY: test
 test:
-	$(PYTEST)
+	tox --skip-missing-interpreters true
 
-docs:
-	epydoc -n 'gpodder.net API Client Library' -o docs/ mygpoclient -v --exclude='.*_test'
+# --- Tox recipes ---
 
+.PHONY: lint
+lint:
+	@echo "=== flake8 ==="
+	flake8 $(lint_files)
+	@echo "=== mypy ==="
+	MYPYPATH=stubs mypy src/flake8_aaa tests
+	@echo "=== isort ==="
+	isort --check --diff $(lint_files)
+	@echo "=== yapf ==="
+	yapf --recursive --diff $(lint_files)
+	@echo "=== rst ==="
+	restructuredtext-lint $(rst_files)
+	@echo "=== setup.py ==="
+	python setup.py check --metadata --strict
+
+.PHONY: fixlint
+fixlint:
+	@echo "=== fixing isort ==="
+	isort --quiet --recursive $(lint_files)
+	@echo "=== fixing yapf ==="
+	yapf --recursive --in-place $(lint_files)
+
+.PHONY: lintexamples
+lintexamples:
+	@echo "=== flake8 ==="
+	flake8 examples/good examples/bad | sort > flake8.out
+	diff examples/bad/flake8_expected.out flake8.out
+	@echo "=== mypy ==="
+	mypy examples examples/good --ignore-missing-imports
+	mypy examples/bad --ignore-missing-imports
+	@echo "=== black ==="
+	black --check --diff --verbose examples/good/black
+
+.PHONY: lintexamplespy38
+lintexamplespy38:
+	@echo "=== flake8 ==="
+	flake8 examples/good_py38
+	@echo "=== mypy ==="
+	mypy examples/good_py38
+
+.PHONY: fixlintexamples
+fixlintexamples:
+	@echo "=== black ==="
+	black examples/good/black
+
+.PHONY: doc
+doc:
+	$(MAKE) -C docs html
+
+.PHONY: cmd
+cmd:
+	for i in $(good_examples); do \
+		echo "\n=== $$i ==="; \
+		python -m flake8_aaa "$$i" || break -1; \
+	done
+
+# NOTE: Checks that all bad example files give at least 1 error and all return
+# an error code greater than 0. The `echo;` is used to wipe the error code from
+# the last test, or the for loop fails.
+.PHONY: cmdbad
+cmdbad:
+	for i in $(bad_examples); do \
+		echo "\n=== $$i ==="; \
+		python -m flake8_aaa "$$i" && break -1; \
+		echo; \
+	done
+
+
+# --- Local dev: Building / Publishing ---
+
+.PHONY: clean
 clean:
-	$(FIND) . -name '*.pyc' -o -name __pycache__ -exec $(RM) -r '{}' +
-	$(RM) -r build
-	$(RM) .coverage MANIFEST
+	rm -rf dist build .tox .pytest_cache src/flake8_aaa.egg-info
+	find . -name '*.pyc' -delete
 
-distclean: clean
-	$(RM) -r dist
+.PHONY: sdist
+sdist: tox
+	python setup.py sdist
 
-.PHONY: help test docs clean distclean
-.DEFAULT: help
+.PHONY: bdist_wheel
+bdist_wheel: tox
+	python setup.py bdist_wheel
+
+.PHONY: testpypi
+testpypi: clean sdist bdist_wheel
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+.PHONY: pypi
+pypi: sdist bdist_wheel
+	twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+
+.PHONY: on_master
+on_master:
+	./on_master.sh
+
+.PHONY: tag
+tag: on_master
+	git tag -a $$(python -c 'from src.flake8_aaa.__about__ import __version__; print("v{}".format(__version__))')
+
+.PHONY: black_examples
+black_examples:
+	$(MAKE) -C examples clean all
