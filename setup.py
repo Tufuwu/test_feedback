@@ -1,25 +1,40 @@
-from setuptools import setup
-
-with open('README.md') as f:
-    long_description = f.read()
+from setuptools import setup, find_packages
 
 setup(
-    name='Flask-pyoidc',
-    version='3.9.0',
-    packages=['flask_pyoidc'],
-    package_dir={'': 'src'},
-    url='https://github.com/zamzterz/flask-pyoidc',
-    license='Apache 2.0',
-    author='Samuel Gulliksson',
-    author_email='samuel.gulliksson@gmail.com',
-    description='Flask extension for OpenID Connect authentication.',
+    name="django-statici18n",
+    version="2.1.1",
+    author="Sebastien Fievet",
+    author_email="zyegfryed@gmail.com",
+    url="http://django-statici18n.readthedocs.org/",
+    description="A Django app that provides helper for generating "
+    "Javascript catalog to static files.",
+    long_description=open("README.rst").read(),
+    package_dir={"": "src"},
+    packages=find_packages("src"),
+    include_package_data=True,
+    zip_safe=False,
     install_requires=[
-        'oic>=1.2.1',
-        'Flask',
-        'requests',
-        'importlib_resources'
+        "Django>=2.2",
+        "django-appconf>=1.0",
     ],
-    package_data={'flask_pyoidc': ['parse_fragment.html']},
-    long_description=long_description,
-    long_description_content_type='text/markdown',
+    license="BSD",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: Web Environment",
+        "Framework :: Django",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+    ],
+    project_urls={
+        "Source": "https://github.com/zyegfryed/django-statici18n",
+    },
 )
