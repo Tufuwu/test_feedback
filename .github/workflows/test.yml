@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -11,42 +11,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     strategy:
       matrix:
-        python-version: [3.8, 3.9]  # Updated to supported Python versions
-        jdk: [8]
+        python-version: ['3.7', '3.8', '3.9', '3.10', 'pypy-3.7', 'pypy-3.8']
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-
-    - name: Set up JDK ${{ matrix.jdk }}
-      uses: actions/setup-java@v2
-      with:
-        java-version: ${{ matrix.jdk }}
-        distribution: 'temurin'
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
-      run: bash scripts/install.sh
-
-    - name: Run tests
-      run: bash scripts/run_tests.sh
-
-    - name: SonarCloud Scan
-      if: github.event_name == 'push' && github.event.pull_request == null
+      run: |
+        python -m pip install --upgrade pip
+        pip install codecov tox importlib-metadata
+    - name: Run tests with tox
       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: sonar-scanner
-
-    - name: Cache SonarCloud
-      uses: actions/cache@v3
-      with:
-        path: ~/.sonar/cache
-        key: ${{ runner.os }}-sonar
+        TOX_PARALLEL_NO_SPINNER: 1
+      run: tox -e py --skip-missing-interpreters
+    - name: Upload coverage to Codecov
+      if: success()
+      run: codecov
