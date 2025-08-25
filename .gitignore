@@ -1,18 +1,60 @@
-!.gitignore
-*~
-*.py[co]
-.*.sw[po]
+*.py[cod]
+.pydevproject
+
+# C extensions
+*.so
+
+# Packages
 *.egg
-docs/.build
-docs/_build
-build/
-dist/
-env/
-.venv
-Pipfile.lock
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+MANIFEST
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+
+# Patch files
+*.patch
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+
+# OSX files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+# PyCharm Files
+.idea
+
+# eclipse
 .settings
 .project
-.coverage
 .pydevproject
-tests/bugfix.py
-*.egg-info
+
+# emacs
+*~
+
+# Virtual Studio Code
+.vscode

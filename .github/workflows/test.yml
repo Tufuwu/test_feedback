@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -11,41 +11,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:latest
-        ports:
-          - 27017:27017
-        options: --quiet --bind_ip_all
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
-        django-version: ['Django>=2.2,<2.3', 'Django>=3.0,<3.2', 'Django>=3.2,<3.3']
+        python-version: [3.9, 3.8]
 
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Install Poetry
-      run: pip install poetry
-
     - name: Install dependencies
       run: |
-        poetry install -q
-        poetry run pip install -q ${{ matrix.django-version }}
-
-    - name: Wait for MongoDB to start
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install nexpy
+        pip install numpy
+    - name: Test with pytest
       run: |
-        for i in {1..30}; do
-          nc -z localhost 27017 && break
-          sleep 1
-        done
-
-    - name: Run tests
-      env:
-        MONGO_URL: mongodb://localhost:27017
-      run: poetry run python -m pytest
+        pip install pytest
+        pytest
