@@ -11,24 +11,49 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11, pypy-3.8]
+        python-version: ['3.8', '3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements/tests.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
-        pip install -r test-requirements.txt
-        pip install -e .
-    - name: Test with nosetests
-      run: nosetests -q --with-coverage --cover-package=pycron
-    - name: Upload coverage to Coveralls
+        pip install -r requirements/tests.txt
+        pip install coveralls
+
+    - name: Run tests
+      run: nosetests --with-coverage --cover-erase --cover-package=temba_client
+
+    - name: Lint with flake8
+      run: flake8
+
+    - name: Coveralls
       if: success()
-      env:
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: coveralls
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Slack Notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ needs.build.result }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
