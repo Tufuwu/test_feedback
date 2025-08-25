@@ -1,83 +1,79 @@
 #!/usr/bin/env python
-"""
-Copyright 2014-2020 Parsely, Inc.
+# -*- coding: utf-8 -*-
+#
+# Copyright 2015-2019 by Hartmut Goebel <h.goebel@crazy-compilers.com>
+#
+# This file is part of unittest2pytest.
+#
+# unittest2pytest is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+from setuptools import setup
 import re
 
-from setuptools import setup, find_packages
 
-# Get version without importing, which avoids dependency issues
-def get_version():
-    with open("streamparse/version.py") as version_file:
-        return re.search(
-            r"""__version__\s+=\s+(['"])(?P<version>.+?)\1""", version_file.read()
-        ).group("version")
-
-
-def readme():
-    """ Returns README.rst contents as str """
-    with open("README.rst") as f:
-        return f.read()
+def get_version(filename):
+    """
+    Return package version as listed in `__version__` in `filename`.
+    """
+    init_py = open(filename).read()
+    return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
 
-install_requires = [
-    l.split("#")[0].strip()
-    for l in open("requirements.txt").readlines()
-    if not l.startswith(("#", "-"))
-]
+version = get_version('unittest2pytest/__init__.py')
 
-tests_require = ["graphviz", "pytest"]
+
+def read(filename):
+    return open(filename, 'r', encoding='utf-8').read()
+
+
+long_description = '\n\n'.join([read('README.rst'),
+                                read('CHANGES.rst')])
+
 
 setup(
-    name="streamparse",
-    version=get_version(),
-    author="Parsely, Inc.",
-    author_email="hello@parsely.com",
-    url="https://github.com/Parsely/streamparse",
-    description=(
-        "streamparse lets you run Python code against real-time "
-        "streams of data. Integrates with Apache Storm."
-    ),
-    long_description=readme(),
-    license="Apache License 2.0",
-    packages=find_packages(),
+    name="unittest2pytest",
+    license='GPLv3+',
+    version=version,
+    description="Convert unittest test-cases to pytest",
+    long_description=long_description,
+    author="Hartmut Goebel",
+    author_email="h.goebel@crazy-compilers.com",
+    url="https://github.com/pytest-dev/unittest2pytest",
+    packages=["unittest2pytest", "unittest2pytest.fixes"],
     entry_points={
-        "console_scripts": [
-            "sparse = streamparse.cli.sparse:main",
-            "streamparse = streamparse.cli.sparse:main",
-            "streamparse_run = streamparse.run:main",
-        ]
+        'console_scripts': [
+            'unittest2pytest = unittest2pytest.__main__:main',
+        ],
     },
-    install_requires=install_requires,
-    tests_require=tests_require,
-    extras_require={
-        "test": tests_require,
-        "all": install_requires + tests_require,
-        "docs": ["sphinx"] + tests_require,
-    },
-    zip_safe=False,
-    include_package_data=True,
     classifiers=[
-        "License :: OSI Approved :: Apache Software License",
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
+        "Programming Language :: Python :: 3.10",
+        "Topic :: Software Development",
+        "Topic :: Utilities",
     ],
+    python_requires=">=3.6",
+    zip_safe=False
 )

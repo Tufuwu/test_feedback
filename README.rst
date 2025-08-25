@@ -1,65 +1,94 @@
-|logo|
+==================================
+unittest2pytest
+==================================
 
-|Build Status|
+-----------------------------------------------------
+Helps converting unittest test-cases to pytest
+-----------------------------------------------------
 
-Streamparse lets you run Python code against real-time streams of data via
-Apache Storm.  With streamparse you can create Storm bolts and spouts in
-Python without having to write a single line of Java.  It also provides handy
-CLI utilities for managing Storm clusters and projects.
+:Author:    Hartmut Goebel <h.goebel@crazy-compilers.com>
+:Version:   0.5.dev0
+:Copyright: 2015-2019 by Hartmut Goebel
+:Licence:   GNU Public Licence v3 or later (GPLv3+)
+:Homepage:  https://github.com/pytest-dev/unittest2pytest
 
-The Storm/streamparse combo can be viewed as a more robust alternative to Python
-worker-and-queue systems, as might be built atop frameworks like Celery and RQ.
-It offers a way to do "real-time map/reduce style computation" against live
-streams of data. It can also be a powerful way to scale long-running, highly
-parallel Python processes in production.
 
-|Demo|
+.. image:: https://github.com/pytest-dev/unittest2pytest/actions/workflows/test.yml/badge.svg
+    :target: https://github.com/pytest-dev/unittest2pytest/actions
+    :alt: See Build Status on GitHub Actions
 
-Documentation
--------------
+`unittest2pytest` is a tool that helps rewriting Python `unittest`
+test-cases into pytest_ test-cases.
 
-* `HEAD <http://streamparse.readthedocs.org/en/master/>`_
-* `Stable <http://streamparse.readthedocs.org/en/stable/>`_
+In contrast to other similar tools, this `unittest2pytest`
 
-User Group
-----------
+* handles keyword arguments,
+* handles single-line test-cases and several tests on one line,
+* uses context-handlers where appropriate.
 
-Follow the project's progress, get involved, submit ideas and ask for help via
-our Google Group, `streamparse@googlegroups.com <https://groups.google.com/forum/#!forum/streamparse>`__.
+This is done by using ``lib2to3`` and Python's mighty ``inspect``
+module.
 
-Contributors
-------------
 
-Alphabetical, by last name:
 
--  Dan Blanchard (`@dsblanch <https://twitter.com/dsblanch>`__)
--  Keith Bourgoin (`@kbourgoin <https://twitter.com/kbourgoin>`__)
--  Arturo Filastò (`@hellais <https://github.com/hellais>`__)
--  Jeffrey Godwyll (`@rey12rey <https://twitter.com/rey12rey>`__)
--  Daniel Hodges (`@hodgesds <https://github.com/hodgesds>`__)
--  Wieland Hoffmann (`@mineo <https://github.com/mineo>`__)
--  Tim Hopper (`@tdhopper <https://twitter.com/tdhopper>`__)
--  Omer Katz (`@thedrow <https://github.com/thedrow>`__)
--  Aiyesha Ma (`@Aiyesha <https://github.com/Aiyesha>`__)
--  Andrew Montalenti (`@amontalenti <https://twitter.com/amontalenti>`__)
--  Rohit Sankaran (`@roadhead <https://twitter.com/roadhead>`__)
--  Viktor Shlapakov (`@vshlapakov <https://github.com/vshlapakov>`__)
--  Mike Sukmanowsky (`@msukmanowsky <https://twitter.com/msukmanowsky>`__)
--  Cody Wilbourn (`@codywilbourn <https://github.com/codywilbourn>`__)
--  Curtis Vogt (`@omus <https://github.com/omus>`__)
+Installation
+===================
 
-Changelog
----------
+To install unittest2pytest, simply run::
 
-See the `releases <https://github.com/Parsely/streamparse/releases>`__ page on
-GitHub.
+    pip install unittest2pytest
 
-Roadmap
--------
 
-See the `Roadmap <https://github.com/Parsely/streamparse/wiki/Roadmap>`__.
+Usage
+===================
 
-.. |logo| image:: https://raw.githubusercontent.com/Parsely/streamparse/master/doc/source/images/streamparse-logo.png
-.. |Build Status| image:: https://travis-ci.org/Parsely/streamparse.svg?branch=master
-   :target: https://travis-ci.org/Parsely/streamparse
-.. |Demo| image:: https://raw.githubusercontent.com/Parsely/streamparse/master/doc/source/images/quickstart.gif
+To print a diff of changes that unittest2pytest will make against a
+particular source file or directory::
+
+    unittest2pytest source_folder
+
+To have those changes written to the files::
+
+    unittest2pytest -w source_folder
+
+To have those changes written to another directory::
+
+    unittest2pytest -w source_folder --output-dir /some/where/else
+
+By default, this will create backup files for each file that will be
+changed. You can add the `-n` option to not create the backups. Please
+do not do this if you are not using a version control system.
+
+For more options about running particular fixers, run
+``unittest2pytest --help`` or read the `lib2to3 documentation`_. This
+tool is built on top of that one.
+
+
+Fixes
+===================
+
+A list of the available fixers can be found with the following::
+
+    $ unittest2pytest -l
+    Available transformations for the -f/--fix option:
+    remove_class
+    self_assert
+
+
+Note: if your tests use the context managers ``with self.assertRaises`` or
+``with self.assertWarns``, they will be transformed to ``pytest.raises`` or
+``pytest.warns`` appropriately, but because the semantics are different, any
+use of the output value from the context managers (e.g. the ``x`` in
+``with pytest.raises(ValueError) as x:``) will be wrong and will require
+manual adjustment after the fact.
+
+.. _`lib2to3 documentation`: http://docs.python.org/library/2to3.html
+.. _pytest: https://pytest.org/
+
+
+..
+ Local Variables:
+ mode: rst
+ ispell-local-dictionary: "american"
+ coding: utf-8
+ End:

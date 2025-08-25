@@ -1,6 +1,7 @@
-recursive-include streamparse *
-include *.rst
-include *.md
-include *.txt
-global-exclude *.pyc
-global-exclude __pycache__
+include CHANGES.rst
+include COPYING-GPLv3.txt
+include README.rst
+
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
