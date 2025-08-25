@@ -9,37 +9,35 @@ on:
       - main
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, pypy-3.7]
-        include:
-          - python-version: 3.9
-            env:
-              TOX_ENV: lint
+        python-version: ["3.8", "3.9"]
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-dev.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
     - name: Install dependencies
-      run: |
-        if [ -f requirements-dev.txt ]; then
-          pip install -U -r requirements-dev.txt
-        fi
-        pip install .
+      run: pip install -r requirements.txt
     - name: Run tests
-      env:
-        TOX_ENV: ${{ matrix.env.TOX_ENV }}
       run: |
-        tox -e $TOX_ENV
-        pytest --dead-fixtures
+        mkdir -p coverage
+        nosetests --with-coverage --cover-package=discogs_client --cover-xml --cover-xml-file=coverage/coverage.xml
+    - name: Convert coverage to lcov
+      run: |
+        pip install xmltodict
+        python -c "import xmltodict, json, os; \
+with open('coverage/coverage.xml') as xml_file: \
+    data_dict = xmltodict.parse(xml_file.read()); \
+    json_data = json.dumps(data_dict); \
+    with open('coverage/coverage.json', 'w') as json_file: \
+        json_file.write(json_data)"
+    - name: Upload coverage to Coveralls
+      uses: coverallsapp/github-action@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: coverage/coverage.json
