@@ -1,4 +1,4 @@
-name: CI
+name: Python application
 
 on:
   push:
@@ -10,10 +10,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        python-version: ['3.8', '3.9']
+        python-version: [3.7]
 
     steps:
     - uses: actions/checkout@v2
@@ -23,22 +23,23 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/Pipfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install tox-travis codecov
+        pip install pipenv
+        pipenv install --dev
 
-    - name: Run tests
-      run: tox
-
-    - name: Upload coverage to Codecov
-      env:
-        VERSION: python_${{ matrix.python-version }}
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    - name: Lint with flake8
       run: |
-        codecov --required --flags $VERSION ||
-        (sleep 5 && codecov --required --flags $VERSION) ||
-        (sleep 10 && codecov --required --flags $VERSION) ||
-        (sleep 20 && codecov --required --flags $VERSION) ||
-        (sleep 30 && codecov --required --flags $VERSION)
-      continue-on-error: true
+        flake8 .
+        flake8 . --exit-zero --select=C,E,F,W
+
+    - name: Test with pytest
+      run: pytest
