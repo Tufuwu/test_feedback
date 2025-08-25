@@ -11,38 +11,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: ["3.8", "3.9"]
-
+        python-version: [3.8, 3.9, pypy-3.7]
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-        fail-on-cache-miss: false
-
     - name: Install dependencies
       run: |
-        pip install -U pip wheel coverage codecov
-        pip install -r requirements.txt pytest pytest-mock
-        python setup.py develop
-
-    - name: Test with pytest
-      run: coverage run -m py.test -v tests/
-
-    - name: Upload coverage to Codecov
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      run: codecov
+        python -m pip install --upgrade pip
+        pip install -U 'setuptools>=39.2.0'
+        pip install -e .
+    - name: Run tests
+      run: |
+        pip install pytest
+        pytest
