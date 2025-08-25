@@ -1,2 +1,10 @@
-include symspellpy/frequency_dictionary_en_82_765.txt
-include symspellpy/frequency_bigramdictionary_en_243_342.txt
+include MANIFEST.in
+include README.rst
+include LICENSE
+include AUTHORS
+recursive-include django_mongoengine *.html *.css *.js *.png *.gif *.woff *.ttf *.svg *.eot
+recursive-include docs *
+recursive-exclude docs *.pyc
+recursive-exclude docs *.pyo
+prune docs/_build
+prune docs/_themes/.git

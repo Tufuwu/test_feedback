@@ -1,88 +1,58 @@
-import os
+"""
+Django-MongoEngine
+------------------
+
+Django support for MongoDB using MongoEngine.
+
+This is work-in-progress. Some things working, some don't. Fix what you need and make
+pull-request.
+
+Links
+`````
+
+* `development version
+  <https://github.com/MongoEngine/django-mongoengine>`_
+
+"""
+from setuptools import setup, find_packages
 import sys
+import os
 
-from setuptools import setup
-from setuptools.command.test import test as TestCommand
 
-cwd = os.path.realpath(os.path.dirname(__file__))
+__version__ = '0.4.6'
+__description__ = 'Django support for MongoDB via MongoEngine'
+__license__ = 'BSD'
+__author__ = 'Ross Lawley'
+__email__ = 'ross.lawley@gmail.com'
 
-class PyTest(TestCommand):
-    user_options = [("pytest-args=", "a", "Arguments to pass into py.test")]
 
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.pytest_args = ""
+sys.path.insert(0, os.path.dirname(__file__))
 
-    def run_tests(self):
-        import shlex
-
-        import pytest
-
-        errno = pytest.main(shlex.split(self.pytest_args))
-        sys.exit(errno)
-
-# "setup.py publish" shortcut.
-if sys.argv[-1] == "publish":
-    os.system("python setup.py sdist bdist_wheel")
-    os.system("twine upload dist/*")
-    sys.exit()
-
-if sys.argv[-1] == "check":
-    os.system("python setup.py sdist bdist_wheel")
-    os.system("twine check dist/*")
-    sys.exit()
-
-packages = ["symspellpy"]
-
-requires = [
-    "numpy>=1.13.1"
-]
-test_requirements = [
-    'pytest-cov',
-    'pytest>=3.7.1'
-]
-
-about = {}
-with open(os.path.join(cwd, "symspellpy", "__version__.py"), "r",
-          encoding="utf-8") as infile:
-    exec(infile.read(), about)
-
-with open(os.path.join(cwd, "README.md"), "r", encoding="utf-8") as infile:
-    readme = infile.read()
-with open(os.path.join(cwd, "CHANGELOG.md"), "r",
-          encoding="utf-8") as infile:
-    changelog = infile.read()
 
 setup(
-    name=about["__title__"],
-    version=about["__version__"],
-    description=about["__description__"],
-    long_description=readme + "\n\n" + changelog,
-    long_description_content_type="text/markdown",
-    author=about["__author__"],
-    author_email=about["__author_email__"],
-    url=about["__url__"],
-    packages=packages,
-    package_data={"symspellpy": ["frequency_dictionary_en_82_765.txt",
-                                 "frequency_bigramdictionary_en_243_342.txt"]},
-    package_dir={"symspellpy": "symspellpy"},
-    include_package_data=True,
-    python_requires=">=3.4",
-    install_requires=requires,
-    license=about["__license__"],
+    name='django-mongoengine',
+    version=__version__,
+    url='https://github.com/mongoengine/django-mongoengine',
+    download_url='https://github.com/mongoengine/django-mongoengine/tarball/master',
+    license=__license__,
+    author=__author__,
+    author_email=__email__,
+    description=__description__,
+    long_description=__doc__,
     zip_safe=False,
+    platforms='any',
+    install_requires=["django>2.2,<3.3", "mongoengine>=0.14"],
+    packages=find_packages(exclude=('doc', 'docs',)),
+    include_package_data=True,
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Natural Language :: English",
-        "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7"
-    ],
-    cmdclass={"test": PyTest},
-    tests_require=test_requirements,
+        'Development Status :: 4 - Beta',
+        'Environment :: Web Environment',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Framework :: Django'
+    ]
 )
