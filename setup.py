@@ -1,47 +1,45 @@
-# Setup for epydemic
-#
-# Copyright (C) 2017--2021 Simon Dobson
-#
-# This file is part of epydemic, epidemic network simulations in Python.
-#
-# epydemic is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# epydemic is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with epydemic. If not, see <http://www.gnu.org/licenses/gpl.html>.
+from codecs import open
+from os import path
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
-with open('README.rst') as f:
-    longDescription = f.read()
+here = path.abspath(path.dirname(__file__))
 
-setup(name = 'epydemic',
-      version = '1.4.2',
-      description = 'Epidemic network simulations in Python',
-      long_description = longDescription,
-      url = 'http://github.com/simoninireland/epydemic',
-      author = 'Simon Dobson',
-      author_email = 'simoninireland@gmail.com',
-      license = 'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
-      classifiers = [ 'Development Status :: 4 - Beta',
-                      'Intended Audience :: Science/Research',
-                      'Intended Audience :: Developers',
-                      'Programming Language :: Python :: 3.6',
-                      'Programming Language :: Python :: 3.7',
-                      'Programming Language :: Python :: 3.8',
-                      'Programming Language :: Python :: 3.9',
-                      'Topic :: Scientific/Engineering' ],
-      python_requires = '>=3.6',
-      packages = [ 'epydemic' ],
-      package_data = { 'epydemic': [ 'py.typed' ] },
-      zip_safe = False,
-      install_requires = [ "networkx >= 2.4", "epyc >= 1.2.1", "pandas", "numpy >= 1.18", "mpmath",  ],
-      extra_requires = { ':python_version < 3.8': [ 'typing_extensions' ] },
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
+    long_description = f.read()
+
+__version__ = None
+with open("sendgrid_backend/version.py") as f:
+    exec(f.read())
+
+setup(
+    name="django-sendgrid-v5",
+    version=str(__version__),
+    description="An implementation of Django's EmailBackend compatible with sendgrid-python v5+",
+    long_description=long_description,
+    url="https://github.com/sklarsa/django-sendgrid-v5",
+    license="MIT",
+    author="Steven Sklar",
+    author_email="sklarsa@gmail.com",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+    ],
+    keywords="django email sendgrid backend",
+    packages=find_packages(
+        exclude=[
+            "test",
+        ]
+    ),
+    install_requires=[
+        "django >=1.8",
+        "sendgrid >=5.0.0",
+        "python-http-client >=3.0.0",
+    ],
 )
