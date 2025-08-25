@@ -9,29 +9,21 @@ on:
       - main
 
 jobs:
-  build:
+  test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
-        include:
-          - python-version: "3.8"
-            dist: "xenial"
-    runs-on: ubuntu-latest
-
+        python-version: [3.8, 3.9]
+        django-version: [1.11, 2.2, 3.0, 3.1]
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install -U .
-      - name: Run tests
-        run: |
-          set -e
-          if make test; then
-            echo "Tests passed"
-          else
-            echo "Tests failed"
-            exit 1
-          fi
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+    - name: Run tests
+      run: tox -e py${{ matrix.python-version }}-django${{ matrix.django-version }}
