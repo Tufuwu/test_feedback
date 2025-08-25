@@ -1,58 +1,161 @@
-fcache
-======
+====================================
+Django REST Framework JSON CamelCase
+====================================
 
-.. image:: https://badge.fury.io/py/fcache.png
-    :target: http://badge.fury.io/py/fcache
+.. image:: https://travis-ci.org/vbabiy/djangorestframework-camel-case.svg?branch=master
+        :target: https://travis-ci.org/vbabiy/djangorestframework-camel-case
 
-.. image:: https://travis-ci.org/tsroten/fcache.png?branch=develop
-    :target: https://travis-ci.org/tsroten/fcache
+.. image:: https://badge.fury.io/py/djangorestframework-camel-case.svg
+    :target: https://badge.fury.io/py/djangorestframework-camel-case
 
-fcache is a dictionary-like, file-based cache module for Python. It's simple
-to use, has an optional write buffer, and is
-`Shelf <http://docs.python.org/3/library/shelve.html#shelve.Shelf>`_-compatible.
+Camel case JSON support for Django REST framework.
 
-.. code:: python
+============
+Installation
+============
 
-    >>> from fcache.cache import FileCache
-    >>> mycache = FileCache('myapp')
-    >>> mycache['foo'] = [1, 2, 3, 4, 5]
-    >>> mycache['foo']
-    [1, 2, 3, 4, 5]
-    >>> mycache['bar'] = 'value'
-    >>> list(mycache)
-    ['foo', 'bar']
-    >>> del mycache['foo']
-    >>> mycache['foo']
-        ...
-        KeyError: 'foo'
+At the command line::
 
-.. code:: python
+    $ pip install djangorestframework-camel-case
 
-   with FileCache('myapp') as mycache:
-       mycache['foo'] = [1, 2, 3, 4, 5]
+Add the render and parser to your django settings file.
 
-Install
--------
+.. code-block:: python
 
-To install fcache, use pip:
+    # ...
+    REST_FRAMEWORK = {
 
-.. code:: bash
+        'DEFAULT_RENDERER_CLASSES': (
+            'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
+            'djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer',
+            # Any other renders
+        ),
 
-    $ pip3 install fcache
+        'DEFAULT_PARSER_CLASSES': (
+            # If you use MultiPartFormParser or FormParser, we also have a camel case version
+            'djangorestframework_camel_case.parser.CamelCaseFormParser',
+            'djangorestframework_camel_case.parser.CamelCaseMultiPartParser',
+            'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+            # Any other parsers
+        ),
+    }
+    # ...
 
-fcache also requires the `appdirs <https://github.com/ActiveState/appdirs>`_ package.
+=================
+Swapping Renderer
+=================
 
-Documentation
--------------
+By default the package uses `rest_framework.renderers.JSONRenderer`. If you want
+to use another renderer (the only possible alternative is
+`rest_framework.renderers.UnicodeJSONRenderer`, only available in DRF < 3.0), you must specify it in your django
+settings file.
 
-`fcache's documentation <https://fcache.readthedocs.org/>`_ contains an introduction along with an API overview. For more information on how to get started with fcache, be sure to read the documentation.
+.. code-block:: python
 
-Bug/Issues Tracker
-------------------
+    # ...
+    JSON_CAMEL_CASE = {
+        'RENDERER_CLASS': 'rest_framework.renderers.UnicodeJSONRenderer'
+    }
+    # ...
 
-fcache uses its `GitHub Issues page <https://github.com/tsroten/fcache/issues>`_ to track bugs, feature requests, and support questions.
+=====================
+Underscoreize Options
+=====================
 
+
+**No Underscore Before Number**
+
+
+As raised in `this comment <https://github.com/krasa/StringManipulation/issues/8#issuecomment-121203018>`_
+there are two conventions of snake case.
+
+.. code-block:: text
+
+    # Case 1 (Package default)
+    v2Counter -> v_2_counter
+    fooBar2 -> foo_bar_2
+
+    # Case 2
+    v2Counter -> v2_counter
+    fooBar2 -> foo_bar2
+
+
+By default, the package uses the first case. To use the second case, specify it in your django settings file.
+
+.. code-block:: python
+
+    REST_FRAMEWORK = {
+        # ...
+        'JSON_UNDERSCOREIZE': {
+            'no_underscore_before_number': True,
+        },
+        # ...
+    }
+
+Alternatively, you can change this behavior on a class level by setting `json_underscoreize`:
+
+.. code-block:: python
+
+    from djangorestframework_camel_case.parser import CamelCaseJSONParser
+    from rest_framework.generics import CreateAPIView
+
+    class NoUnderscoreBeforeNumberCamelCaseJSONParser(CamelCaseJSONParser):
+        json_underscoreize = {'no_underscore_before_number': True}
+
+    class MyView(CreateAPIView):
+        queryset = MyModel.objects.all()
+        serializer_class = MySerializer
+        parser_classes = (NoUnderscoreBeforeNumberCamelCaseJSONParser,)
+
+=============
+Ignore Fields
+=============
+
+You can also specify fields which should not have their data changed.
+The specified field(s) would still have their name change, but there would be no recursion.
+For example:
+
+.. code-block:: python
+
+    data = {"my_key": {"do_not_change": 1}}
+
+Would become:
+
+.. code-block:: python
+
+    {"myKey": {"doNotChange": 1}}
+
+However, if you set in your settings:
+
+.. code-block:: python
+
+    REST_FRAMEWORK = {
+        # ...
+        "JSON_UNDERSCOREIZE": {
+            # ...
+            "ignore_fields": ("my_key",),
+            # ...
+        },
+        # ...
+    }
+
+The `my_key` field would not have its data changed:
+
+.. code-block:: python
+
+    {"myKey": {"do_not_change": 1}}
+
+=============
+Running Tests
+=============
+
+To run the current test suite, execute the following from the root of he project::
+
+    $ python -m unittest discover
+
+
+=======
 License
--------
+=======
 
-fcache is released under the OSI-approved `MIT License <http://opensource.org/licenses/MIT>`_. See the file LICENSE.txt for more information.
+* Free software: BSD license
