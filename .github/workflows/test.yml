@@ -1,4 +1,4 @@
-name: CI
+name: Python application
 
 on:
   push:
@@ -12,44 +12,33 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11]
-
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.7'
+        architecture: 'x64'
+
+    - name: Install Miniconda
+      run: |
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/miniconda.sh
+        bash $HOME/miniconda.sh -b -u -p $HOME/miniconda
+        echo "$HOME/miniconda/bin" >> $GITHUB_PATH
 
     - name: Install dependencies
-      run: pip install --requirement dev-requirements.txt
-
-    - name: Validate coding guidelines
-      if: ${{ matrix.python-version == '3.8' }}
-      run: pre-commit run --all-files
-
-    - name: Run test suite
       run: |
-        python setup.py develop
-        pytest --verbose
+        pip install nose coverage coveralls flake8 scikit-image
+        pip install -e .
 
-    - name: Build and install package
-      run: |
-        python setup.py bdist_wheel
-        python setup.py install
+    - name: Lint with flake8
+      run: flake8
 
-    - name: Test drive installed pygount
-      run: |
-        pygount --version
-        pygount --help
-        pygount pygount *.cfg *.yaml
-        pygount --format=summary pygount *.cfg *.yaml
+    - name: Test with nosetests
+      run: nosetests -sv --with-doctest --no-byte-compile --with-coverage --cover-package=tftb
 
-    - name: Upload coverage to Coveralls
-      if: ${{ matrix.python-version == '3.8' }}
+    - name: Coveralls
+      run: coveralls
       env:
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-      run: coveralls
