@@ -1,29 +1,35 @@
-name: Python package
+name: CI
 
 on:
   push:
     branches:
-      - main
+      - '**'
+      - '!dependabot/**'
   pull_request:
     branches:
-      - main
+      - '**'
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.9, '3.x', 'pypy-3.9']
+        python-version: [3.8, pypy-3.6]
+        include:
+          - python-version: 3.8
+            env: OLD_CRYPTOGRAPHY=2.6.1
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools>=18.5 wheel
-        pip install -e . || true
-        pip install greenlet==1.0.0  # Specify a compatible version of greenlet
-    - name: Run tests
-      run: python runtests.py
+        if [ -n "${{ matrix.env.OLD_CRYPTOGRAPHY }}" ]; then
+          pip install cryptography==${{ matrix.env.OLD_CRYPTOGRAPHY }}
+        fi
+    - name: Run script
+      run: ./ci/travis.sh
+      working-directory: ./ci
