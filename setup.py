@@ -1,255 +1,206 @@
-#!/usr/bin/env python3
-
-###
-# Copyright (c) 2002-2005, Jeremiah Fincher
-# Copyright (c) 2009, James McCoy
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#   * Redistributions of source code must retain the above copyright notice,
-#     this list of conditions, and the following disclaimer.
-#   * Redistributions in binary form must reproduce the above copyright notice,
-#     this list of conditions, and the following disclaimer in the
-#     documentation and/or other materials provided with the distribution.
-#   * Neither the name of the author of this software nor the name of
-#     contributors to this software may be used to endorse or promote products
-#     derived from this software without specific prior written consent.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-###
-
+import builtins
 import os
-import sys
-import time
-import warnings
-import datetime
-import tempfile
 import subprocess
+import sys
+from distutils.version import LooseVersion
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext as _build_ext
+import logging
+import versioneer
 
-warnings.filterwarnings('always', category=DeprecationWarning)
-
-debug = '--debug' in sys.argv
-
-path = os.path.dirname(__file__)
-if debug:
-    print('DEBUG: Changing dir from %r to %r' % (os.getcwd(), path))
-if path:
-    os.chdir(path)
-
-VERSION_FILE = os.path.join('src', 'version.py')
-version = None
+# Skip Cython build if not available
 try:
-    if 'SOURCE_DATE_EPOCH' in os.environ:
-        date = int(os.environ['SOURCE_DATE_EPOCH'])
-    else:
-        proc = subprocess.Popen('git show HEAD --format=%ct', shell=True,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        date = proc.stdout.readline()
-        if sys.version_info[0] >= 3:
-            date = date.decode()
-        date = int(date.strip())
-    version = ".".join(str(i).zfill(2) for i in
-            time.strptime(time.asctime(time.gmtime(date)))[:3])
-except:
-    if os.path.isfile(VERSION_FILE):
-        from src.version import version
-    else:
-        version = 'installed on ' + time.strftime("%Y-%m-%dT%H-%M-%S", time.gmtime())
-try:
-    os.unlink(VERSION_FILE)
-except OSError: # Does not exist
-    pass
-if version:
-    fd = open(os.path.join('src', 'version.py'), 'a')
-    fd.write("version = '%s'\n" % version)
-    fd.write('try: # For import from setup.py\n')
-    fd.write('    import supybot.utils.python\n')
-    fd.write('    supybot.utils.python._debug_software_version = version\n')
-    fd.write('except ImportError:\n')
-    fd.write('    pass\n')
-    fd.close()
-
-if sys.version_info < (3, 4, 0):
-    sys.stderr.write("Limnoria requires Python 3.6 or newer.")
-    sys.stderr.write(os.linesep)
-    sys.exit(-1)
-
-if sys.version_info < (3, 6, 0) \
-        and os.environ.get('LIMNORIA_WARN_OLD_PYTHON') != '0':
-    sys.stderr.write('====================================================\n')
-    sys.stderr.write('Limnoria support for Python versions older than 3.6\n')
-    sys.stderr.write('is deprecated and may be removed in the near future.\n')
-    sys.stderr.write('You should upgrade ASAP.\n')
-    sys.stderr.write('Install will continue in 60s.\n')
-    sys.stderr.write('====================================================\n')
-    time.sleep(60)
-
-import textwrap
-
-clean = False
-while '--clean' in sys.argv:
-    clean = True
-    sys.argv.remove('--clean')
-
-import glob
-import shutil
-import os
+    from Cython.Build import cythonize
+except ImportError:
+    cythonize = None
 
 
-plugins = [s for s in os.listdir('plugins') if
-           os.path.exists(os.path.join('plugins', s, 'plugin.py'))]
+log = logging.getLogger(__name__)
+ch = logging.StreamHandler()
+log.addHandler(ch)
 
-def normalizeWhitespace(s):
-    return ' '.join(s.split())
+MIN_GEOS_VERSION = "3.5"
 
-try:
-    from distutils.core import setup
-    from distutils.sysconfig import get_python_lib
-except ImportError as e:
-    s = normalizeWhitespace("""Supybot requires the distutils package to
-    install. This package is normally included with Python, but for some
-    unfathomable reason, many distributions to take it out of standard Python
-    and put it in another package, usually caled 'python-dev' or python-devel'
-    or something similar. This is one of the dumbest things a distribution can
-    do, because it means that developers cannot rely on *STANDARD* Python
-    modules to be present on systems of that distribution. Complain to your
-    distribution, and loudly. If you how much of our time we've wasted telling
-    people to install what should be included by default with Python you'd
-    understand why we're unhappy about this.  Anyway, to reiterate, install the
-    development package for Python that your distribution supplies.""")
-    sys.stderr.write(os.linesep*2)
-    sys.stderr.write(textwrap.fill(s))
-    sys.stderr.write(os.linesep*2)
-    sys.exit(-1)
+if "all" in sys.warnoptions:
+    # show GEOS messages in console with: python -W all
+    log.setLevel(logging.DEBUG)
 
 
-if clean:
-    previousInstall = os.path.join(get_python_lib(), 'supybot')
-    if os.path.exists(previousInstall):
+def get_geos_config(option):
+    """Get configuration option from the `geos-config` development utility
+
+    The PATH environment variable should include the path where geos-config is
+    located, or the GEOS_CONFIG environment variable should point to the
+    executable.
+    """
+    cmd = os.environ.get("GEOS_CONFIG", "geos-config")
+    try:
+        stdout, stderr = subprocess.Popen(
+            [cmd, option], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ).communicate()
+    except OSError:
+        return
+    if stderr and not stdout:
+        log.warning("geos-config %s returned '%s'", option, stderr.decode().strip())
+        return
+    result = stdout.decode().strip()
+    log.debug("geos-config %s returned '%s'", option, result)
+    return result
+
+
+def get_geos_paths():
+    """Obtain the paths for compiling and linking with the GEOS C-API
+
+    First the presence of the GEOS_INCLUDE_PATH and GEOS_INCLUDE_PATH environment
+    variables is checked. If they are both present, these are taken.
+
+    If one of the two paths was not present, geos-config is called (it should be on the
+    PATH variable). geos-config provides all the paths.
+
+    If geos-config was not found, no additional paths are provided to the extension. It is
+    still possible to compile in this case using custom arguments to setup.py.
+    """
+    include_dir = os.environ.get("GEOS_INCLUDE_PATH")
+    library_dir = os.environ.get("GEOS_LIBRARY_PATH")
+    if include_dir and library_dir:
+        return {
+            "include_dirs": ["./src", include_dir],
+            "library_dirs": [library_dir],
+            "libraries": ["geos_c"],
+        }
+
+    geos_version = get_geos_config("--version")
+    if not geos_version:
+        log.warning(
+            "Could not find geos-config executable. Either append the path to geos-config"
+            " to PATH or manually provide the include_dirs, library_dirs, libraries and "
+            "other link args for compiling against a GEOS version >=%s.",
+            MIN_GEOS_VERSION,
+        )
+        return {}
+
+    if LooseVersion(geos_version) < LooseVersion(MIN_GEOS_VERSION):
+        raise ImportError(
+            "GEOS version should be >={}, found {}".format(
+                MIN_GEOS_VERSION, geos_version
+            )
+        )
+
+    libraries = []
+    library_dirs = []
+    include_dirs = ["./src"]
+    extra_link_args = []
+    for item in get_geos_config("--cflags").split():
+        if item.startswith("-I"):
+            include_dirs.extend(item[2:].split(":"))
+
+    for item in get_geos_config("--clibs").split():
+        if item.startswith("-L"):
+            library_dirs.extend(item[2:].split(":"))
+        elif item.startswith("-l"):
+            libraries.append(item[2:])
+        else:
+            extra_link_args.append(item)
+
+    return {
+        "include_dirs": include_dirs,
+        "library_dirs": library_dirs,
+        "libraries": libraries,
+        "extra_link_args": extra_link_args,
+    }
+
+
+# Add numpy include dirs without importing numpy on module level.
+# derived from scikit-hep:
+# https://github.com/scikit-hep/root_numpy/pull/292
+class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        # Prevent numpy from thinking it is still in its setup process:
         try:
-            print('Removing current installation.')
-            shutil.rmtree(previousInstall)
-        except Exception as e:
-            print('Couldn\'t remove former installation: %s' % e)
-            sys.exit(-1)
+            del builtins.__NUMPY_SETUP__
+        except AttributeError:
+            pass
 
-packages = ['supybot',
-            'supybot.locales',
-            'supybot.utils',
-            'supybot.drivers',
-            'supybot.plugins',] + \
-            ['supybot.plugins.'+s for s in plugins] + \
-            [
-             'supybot.plugins.Dict.local',
-             'supybot.plugins.Math.local',
-            ]
+        import numpy
 
-package_dir = {'supybot': 'src',
-               'supybot.utils': 'src/utils',
-               'supybot.locales': 'locales',
-               'supybot.plugins': 'plugins',
-               'supybot.drivers': 'src/drivers',
-               'supybot.plugins.Dict.local': 'plugins/Dict/local',
-               'supybot.plugins.Math.local': 'plugins/Math/local',
-              }
+        self.include_dirs.append(numpy.get_include())
 
-package_data = {'supybot.locales': [s for s in os.listdir('locales/')]}
 
-for plugin in plugins:
-    plugin_name = 'supybot.plugins.' + plugin
-    package_dir[plugin_name] = 'plugins/' + plugin
-    pot_path = 'plugins/' + plugin + 'messages.pot'
-    locales_path = 'plugins/' + plugin + '/locales/'
+ext_modules = []
 
-    files = []
+if "clean" not in sys.argv and "sdist" not in sys.argv:
+    ext_options = get_geos_paths()
 
-    if os.path.exists(pot_path):
-        files.append('messages.pot')
+    ext_modules = [
+        Extension(
+            "pygeos.lib",
+            sources=[
+                "src/c_api.c",
+                "src/coords.c",
+                "src/geos.c",
+                "src/lib.c",
+                "src/pygeom.c",
+                "src/strtree.c",
+                "src/ufuncs.c",
+            ],
+            **ext_options,
+        )
+    ]
 
-    if os.path.exists(locales_path):
-        files.extend(['locales/'+s for s in os.listdir(locales_path)])
+    # Cython is required
+    if not cythonize:
+        sys.exit("ERROR: Cython is required to build pygeos from source.")
 
-    if files:
-        package_data.update({plugin_name: files})
+    cython_modules = [
+        Extension("pygeos._geometry", ["pygeos/_geometry.pyx",], **ext_options,),
+        Extension("pygeos._geos", ["pygeos/_geos.pyx",], **ext_options,),
+    ]
 
-setup(
-    # Metadata
-    name='limnoria',
-    provides=['supybot'],
-    version=version,
-    author='Valentin Lorentz',
-    url='https://github.com/ProgVal/Limnoria',
-    author_email='progval+limnoria@progval.net',
-    download_url='https://pypi.python.org/pypi/limnoria',
-    description='A modified version of Supybot (an IRC bot and framework)',
-    platforms=['linux', 'linux2', 'win32', 'cygwin', 'darwin'],
-    long_description=normalizeWhitespace("""A robust, full-featured Python IRC
-    bot with a clean and flexible plugin API.  Equipped with a complete ACL
-    system for specifying user permissions with as much as per-command
-    granularity.  Batteries are included in the form of numerous plugins
-    already written."""),
-    classifiers = [
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: Console',
-        'Environment :: No Input/Output (Daemon)',
-        'Intended Audience :: End Users/Desktop',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
-        'Natural Language :: English',
-        'Natural Language :: Finnish',
-        'Natural Language :: French',
-        'Natural Language :: Hungarian',
-        'Natural Language :: Italian',
-        'Operating System :: OS Independent',
-        'Operating System :: POSIX',
-        'Operating System :: Microsoft :: Windows',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Topic :: Communications :: Chat :: Internet Relay Chat',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        ],
-
-    # Installation data
-    packages=packages,
-
-    package_dir=package_dir,
-
-    package_data=package_data,
-
-    scripts=['scripts/supybot',
-             'scripts/supybot-test',
-             'scripts/supybot-botchk',
-             'scripts/supybot-wizard',
-             'scripts/supybot-adduser',
-             'scripts/supybot-reset-password',
-             'scripts/supybot-plugin-doc',
-             'scripts/supybot-plugin-create',
-             ],
-    data_files=[('share/man/man1', ['man/supybot.1']),
-                ('share/man/man1', ['man/supybot-test.1']),
-                ('share/man/man1', ['man/supybot-botchk.1']),
-                ('share/man/man1', ['man/supybot-wizard.1']),
-                ('share/man/man1', ['man/supybot-adduser.1']),
-                ('share/man/man1', ['man/supybot-plugin-doc.1']),
-                ('share/man/man1', ['man/supybot-plugin-create.1']),
-        ],
-
+    ext_modules += cythonize(
+        cython_modules,
+        compiler_directives={"language_level": "3"},
+        # enable once Cython >= 0.3 is released
+        # define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
     )
 
-# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+
+try:
+    descr = open(os.path.join(os.path.dirname(__file__), "README.rst")).read()
+except IOError:
+    descr = ""
+
+
+version = versioneer.get_version()
+cmdclass = versioneer.get_cmdclass()
+cmdclass["build_ext"] = build_ext
+
+setup(
+    name="pygeos",
+    version=version,
+    description="GEOS wrapped in numpy ufuncs",
+    long_description=descr,
+    url="https://github.com/pygeos/pygeos",
+    author="Casper van der Wel",
+    author_email="caspervdw@gmail.com",
+    license="BSD 3-Clause",
+    packages=["pygeos"],
+    install_requires=["numpy>=1.13"],
+    extras_require={"test": ["pytest"], "docs": ["sphinx", "numpydoc"],},
+    python_requires=">=3",
+    include_package_data=True,
+    data_files=[("geos_license", ["GEOS_LICENSE"])],
+    ext_modules=ext_modules,
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: Developers",
+        "Development Status :: 4 - Beta",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Software Development",
+        "Operating System :: Unix",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+    ],
+    cmdclass=cmdclass,
+)

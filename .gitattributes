@@ -1,2 +1,1 @@
-sandbox export-ignore
-.git* export-ignore
+pygeos/_version.py export-subst
