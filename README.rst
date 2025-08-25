@@ -1,122 +1,291 @@
-django-yubin
-============
+Snug 🧣
+=======
 
-.. image:: https://travis-ci.org/APSL/django-yubin.svg
-    :target: https://travis-ci.org/APSL/django-yubin
+.. image:: https://img.shields.io/pypi/v/snug.svg
+   :target: https://pypi.python.org/pypi/snug
 
-.. image:: https://coveralls.io/repos/APSL/django-yubin/badge.svg
-  :target: https://coveralls.io/r/APSL/django-yubin
+.. image:: https://img.shields.io/pypi/l/snug.svg
+   :target: https://pypi.python.org/pypi/snug
 
-.. image:: https://img.shields.io/pypi/v/django-yubin.svg
-  :target: https://pypi.python.org/pypi/django-yubin
+.. image:: https://img.shields.io/pypi/pyversions/snug.svg
+   :target: https://pypi.python.org/pypi/snug
 
-.. image:: https://img.shields.io/pypi/pyversions/django-yubin.svg
-  :target: https://pypi.python.org/pypi/django-yubin
+.. image:: https://github.com/ariebovenberg/snug/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/ariebovenberg/snug
 
-.. image:: https://img.shields.io/pypi/djversions/django-yubin.svg
-  :target: https://pypi.python.org/pypi/django-yubin
+.. image:: https://img.shields.io/codecov/c/github/ariebovenberg/snug.svg
+   :target: https://codecov.io/gh/ariebovenberg/snug
 
-.. image:: https://readthedocs.org/projects/django-yubin/badge/?version=latest
-  :target: http://django-yubin.readthedocs.org/en/latest/?badge=latest
-  :alt: Documentation Status
+.. image:: https://img.shields.io/readthedocs/snug.svg
+   :target: http://snug.readthedocs.io/
 
-Django Yubin allows the programmer to control when he wants to send the e-mail
-in this application, making the web application to answer fast as it not has to
-wait for the mail server.
+.. image:: https://img.shields.io/codeclimate/maintainability/ariebovenberg/snug.svg
+   :target: https://codeclimate.com/github/ariebovenberg/snug/maintainability
 
-As in our projects we use always two django packages for dealing with emails:
-django-mailer2 (our own fork in APSL) and django-mailviews to compose the
-emails we decided to create this package to fit our own needs and share with
-the community.
+.. image:: https://img.shields.io/badge/dependabot-enabled-brightgreen.svg?longCache=true&logo=dependabot
+   :target: https://dependabot.com
+   
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
 
-As you can see it seems django-mailer2 is not accepting patches, so in
-order to put a new version on pypi a new name was mandatory.  So django-yubin was born
-(yubin is postal mail in japanese). The name attribution is for @morenosan.
 
-How it works
+**Snug** is a tiny toolkit for writing reusable interactions with web APIs. Key features:
+
+* Write once, run with different HTTP clients (sync *and* async)
+* Fits any API architecture (e.g. REST, RPC, GraphQL)
+* Simple, lightweight and versatile
+
+Why?
+----
+
+Writing reusable web API interactions is difficult.
+Consider a generic example:
+
+.. code-block:: python
+
+    import json
+
+    def repo(name, owner):
+        """get a github repo by owner and name"""
+        request = Request(f'https://api.github.com/repos/{owner}/{name}')
+        response = my_http_client.send(request)
+        return json.loads(response.content)
+
+Nice and simple. But...
+
+* What about async? Do we write another function for that?
+* How do we write clean unittests for this?
+* What if we want to use another HTTP client or session?
+* How do we use this with different credentials?
+
+*Snug* allows you to write API interactions
+independent of HTTP client, credentials, or whether they are run (a)synchronously.
+
+In contrast to most API client toolkits,
+snug makes minimal assumptions and design decisions for you.
+Its simple, adaptable foundation ensures
+you can focus on what makes your API unique.
+Snug fits in nicely whether you're writing a full-featured API wrapper,
+or just making a few API calls.
+
+Quickstart
+----------
+
+1. API interactions ("queries") are request/response generators.
+
+.. code-block:: python
+
+  import snug
+
+  def repo(name, owner):
+      """get a github repo by owner and name"""
+      request = snug.GET(f'https://api.github.com/repos/{owner}/{name}')
+      response = yield request
+      return json.loads(response.content)
+
+2. Queries can be executed:
+
+.. code-block:: python
+
+  >>> query = repo('Hello-World', owner='octocat')
+  >>> snug.execute(query)
+  {"description": "My first repository on Github!", ...}
+
+Features
+--------
+
+1. **Effortlessly async**. The same query can also be executed asynchronously:
+
+   .. code-block:: python
+
+      query = repo('Hello-World', owner='octocat')
+      repo = await snug.execute_async(query)
+
+2. **Flexibility**. Since queries are just generators,
+   customizing them requires no special glue-code.
+   For example: add validation logic, or use any serialization method:
+
+   .. code-block:: python
+
+     from my_types import User, UserSchema
+
+     def user(name: str) -> snug.Query[User]:
+         """lookup a user by their username"""
+         if len(name) == 0:
+             raise ValueError('username must have >0 characters')
+         request = snug.GET(f'https://api.github.com/users/{name}')
+         response = yield request
+         return UserSchema().load(json.loads(response.content))
+
+3. **Pluggable clients**. Queries are fully agnostic of the HTTP client.
+   For example, to use `requests <http://docs.python-requests.org/>`_
+   instead of the standard library:
+
+   .. code-block:: python
+
+      import requests
+      query = repo('Hello-World', owner='octocat')
+      snug.execute(query, client=requests.Session())
+
+4. **Testability**. Queries can easily be run without touching the network.
+   No need for complex mocks or monkeypatching.
+
+   .. code-block:: python
+
+      >>> query = repo('Hello-World', owner='octocat')
+      >>> next(query).url.endswith('/repos/octocat/Hello-World')
+      True
+      >>> query.send(snug.Response(200, b'...'))
+      StopIteration({"description": "My first repository on Github!", ...})
+
+5. **Swappable authentication**. Queries aren't tied to a session or credentials.
+   Use different credentials to execute the same query:
+
+   .. code-block:: python
+
+      def follow(name: str) -> snug.Query[bool]:
+          """follow another user"""
+          req = snug.PUT('https://api.github.com/user/following/{name}')
+          return (yield req).status_code == 204
+
+      snug.execute(follow('octocat'), auth=('me', 'password'))
+      snug.execute(follow('octocat'), auth=('bob', 'hunter2'))
+
+6. **Related queries**. Use class-based queries to create an
+   expressive, chained API for related objects:
+
+   .. code-block:: python
+
+      class repo(snug.Query[dict]):
+          """a repo lookup by owner and name"""
+          def __init__(self, name, owner): ...
+
+          def __iter__(self): ...  # query for the repo itself
+
+          def issue(self, num: int) -> snug.Query[dict]:
+              """retrieve an issue in this repository by its number"""
+              r = snug.GET(f'/repos/{self.owner}/{self.name}/issues/{num}')
+              return json.loads((yield r).content)
+
+      my_issue = repo('Hello-World', owner='octocat').issue(348)
+      snug.execute(my_issue)
+
+7. **Pagination**. Define paginated queries for (asynchronous) iteration.
+
+   .. code-block:: python
+
+      def organizations(since: int=None):
+          """retrieve a page of organizations since a particular id"""
+          resp = yield snug.GET('https://api.github.com/organizations',
+                                params={'since': since} if since else {})
+          orgs = json.loads(resp.content)
+          next_query = organizations(since=orgs[-1]['id'])
+          return snug.Page(orgs, next_query=next_query)
+
+      my_query = snug.paginated(organizations())
+
+      for orgs in snug.execute(my_query):
+          ...
+
+      # or, with async
+      async for orgs in snug.execute_async(my_query):
+          ...
+
+8. **Function- or class-based? You decide**.
+   One option to keep everything DRY is to use
+   class-based queries and inheritance:
+
+   .. code-block:: python
+
+      class BaseQuery(snug.Query):
+          """base github query"""
+
+          def prepare(self, request): ...  # add url prefix, headers, etc.
+
+          def __iter__(self):
+              """the base query routine"""
+              request = self.prepare(self.request)
+              return self.load(self.check_response((yield request)))
+
+          def check_response(self, result): ...  # raise nice errors
+
+      class repo(BaseQuery):
+          """get a repo by owner and name"""
+          def __init__(self, name, owner):
+              self.request = snug.GET(f'/repos/{owner}/{name}')
+
+          def load(self, response):
+              return my_repo_loader(response.content)
+
+      class follow(BaseQuery):
+          """follow another user"""
+          def __init__(self, name):
+              self.request = snug.PUT(f'/user/following/{name}')
+
+          def load(self, response):
+              return response.status_code == 204
+
+   Or, if you're comfortable with higher-order functions and decorators,
+   make use of `gentools <http://gentools.readthedocs.io/>`_
+   to modify query ``yield``, ``send``, and ``return`` values:
+
+   .. code-block:: python
+
+      from gentools import (map_return, map_yield, map_send,
+                            compose, oneyield)
+
+      class Repository: ...
+
+      def my_repo_loader(...): ...
+
+      def my_error_checker(...): ...
+
+      def my_request_preparer(...): ...  # add url prefix, headers, etc.
+
+      basic_interaction = compose(map_send(my_error_checker),
+                                  map_yield(my_request_preparer))
+
+      @map_return(my_repo_loader)
+      @basic_interaction
+      @oneyield
+      def repo(owner: str, name: str) -> snug.Query[Repository]:
+          """get a repo by owner and name"""
+          return snug.GET(f'/repos/{owner}/{name}')
+
+      @basic_interaction
+      def follow(name: str) -> snug.Query[bool]:
+          """follow another user"""
+          response = yield snug.PUT(f'/user/following/{name}')
+          return response.status_code == 204
+
+
+For more info, check out the `tutorial <http://snug.readthedocs.io/en/latest/tutorial.html>`_,
+`advanced features <http://snug.readthedocs.io/en/latest/advanced.html>`_,
+`recipes <http://snug.readthedocs.io/en/latest/recipes.html>`_,
+or `examples <http://snug.readthedocs.io/en/latest/examples.html>`_.
+
+
+Installation
 ------------
 
-Yubin replaces the standard Django Email Backend with its own. Instead of sending
-the e-mail trough the SMTP server Yubin stores the e-mails on the database and
-allows you to sent them using a cron command.
+There are no required dependencies. Installation is easy as:
 
-Advantages
-~~~~~~~~~~
+.. code-block:: bash
 
-* Your application can answer faster, as other process is going to take care of
-  connecting with the SMTP server and sending the e-mail.
+   pip install snug
 
-* Yubin stores the e-mail and allows you to retrieve using the admin. Even with
-  the attachments.
+Although snug includes basic sync and async HTTP clients,
+you may wish to install `requests <http://docs.python-requests.org/>`_
+and/or `aiohttp <http://aiohttp.readthedocs.io/>`_.
 
-* Yubin allows to define prioritary queues, resend e-mails
+.. code-block:: bash
 
-* Yubin helps in your development.  It's a good way to work when you're developping
-  the application and you don't want to flood your test users with
-  e-mails. With Django Yubin, and without running the cron commands, you can see how
-  your e-mails are, retrieve them and even delete them with out sending it.
+   pip install requests aiohttp
 
-On production mode you'll just nedd to add a cron entry in your server to send the e-mails,
-someting like
 
-    * * * * * (cd $PROJECT; python manage.py send_mail >> $PROJECT/cron_mail.log 2>&1)
+Alternatives
+------------
 
-This will send the queued e-mail every minute.
-
-Django Yubin is a fork from django-mailer2 with some addtions from django-mailviews and
-additional improvements made from apsl.net that we need for our daly basis workd. It
-has also contributions from other people, so don't heasitate to read the humans.txt.
-
-django-mailer-2 by is a Chris Beaven fork from a fork of
-James Tauber's django-mailer and is a reusable Django app for queuing the sending of email.
-
-django-mailviews from Disqus, allows you to compose e-mails using templates in
-the same way you compose your html templates, and allows you to preview the
-e-mails.
-
-If you want to run the test you'll need a test smtpd server, you can find one in
-
-    ./bin/fake-server
-
-run it in a different console and execute `runtests.py`
-
-You can read the package documentation at http://django-yubin.readthedocs.org/en/latest/
-
-Changelog
----------
-* 1.7.1       Remove abandoned ``pyzmail36`` dependency with ``mail-parser``.
-* 1.7.0       Add optional ``MAILER_MESSAGE_SEARCH_FIELDS`` setting. It's a tuple of strings with the fields to use in ``admin.Message.search_fields`` attribute.
-* 1.6.0       Support for Django 3.0
-* 1.5.0       New TemplatedMultipleAttachmentsEmailMessageView to allow to send emails with more than 1 attachment.
-* 1.4.1       Detecting if messages are encoding using different encoding headers to be able to preview them (now base64, quoted-printable).
-* 1.4.0       Option added in status_mail command to return the output in json format.
-* 1.3.1       Fix unicode and encode errors: sending queued and non queued emails and in admin detail view.
-* 1.3.0       Allow to send emails inmediatly without being saved in database (priority «now-not-queued»). Add support for Python 3.7 and Django 2.1. Remove old code for Django < 1.3.
-* 1.2.0       Fix is_base64 detection. Add a «send_test_email» command to check connection parameters. New health check view. Don't open a connection if there are no messages in queue to send. Add a "date_sent" field to detect when the mail was sent.
-* 1.1.0       Fix attachment headers in TemplateAttachmentEmailMessagView making both "attachment" and "filename" args mandatory.
-* 1.0.5       Add missing paths in MANIFEST.in.
-* 1.0.4       Fix attachment visualization in the admin. Attach pdf in create_mail command. Solved Content-Transfer-Encoding issue.
-* 1.0.3       Fixed issue decoding the message payload, added support for django 1.9, updated changelog and added support to deploy the package from travis.
-* 1.0.0       Add support for Django 2.0 and remove django 1.8.
-* 0.8.2       Fix date created column in QueuedMessages admin.
-* 0.8.1       Ensure that LOCK_WAIT_TIMEOUT is never negative to avoid a bug in lockfile in systems which use a LinkFileLock.
-* 0.8.0       Use settings.MAILER_PAUSE_SEND to skip smtp connections. Fix UTF-8 encoding in messages. Fix encoding errors in email visualization in the admin.
-* 0.7.0       Fix template context bug for Django 1.11. Add Python 3.6 to CI and drop Python 3.3 and Django 1.9.
-* 0.6.0       Support for Python 3.6.
-* 0.5.0       Limit nº of emails sent by send_mail command. Update the debug handlers options for verbosity to accept v3.
-* 0.4.0       Support Django 1.11: subject and body are no longer unscaped, you need to add {% autoescape off %} to your non HTML templates.
-* 0.3.1       Delete unused template that caused an error with django-compressor offline. testmail command now generates HTML emails.
-* 0.3.0       Support Django >= 1.8 and <=1.10, Python 2.7, 3.3, 3.4 and 3.5. Re-send mails admin action. Fix bug in status_mail command. Demo project configured to send mails with the same mail fake-server used for tests.
-* 0.2.3       Removed {% load url from future %} to support Django 1.9. Now Django < 1.5 is not supported.
-* 0.2.2       Include migrations directory in .tar.gz in PyPi.
-* 0.2.1       Updated links to CI and Code Coverage Services
-* 0.2.0       Merged  sergei-maertens contribution.
-* 0.1.8       Added migrations for Django 1.9 compatibility. See http://django-yubin.readthedocs.org/en/latest/install.html#upgrading-from-previous-versions
-* 0.1.7       Support for Django 1.8.
-* 0.1.6       Bugfixes.
-* 0.1.5       Bugfixes.
-* 0.1.4       Updated README.
-* 0.1.3       Fixed Python3 compatibility, thanks Marc, Cesc & Dani.
-* 0.1.2       Fixed Templates.
-* 0.1.1       Updated documentation and unit tests.
-
+If you're looking for a less minimalistic API client toolkit,
+check out `uplink <http://uplink.readthedocs.io/>`_
+or `tapioca <http://tapioca-wrapper.readthedocs.io/>`_.
