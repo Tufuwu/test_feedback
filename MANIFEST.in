@@ -1,3 +1,4 @@
-include *.txt
-recursive-include examples *
-recursive-include twisted *.py
+include LICENSE
+include tests/*.py
+include examples/*.py
+include readme.md
