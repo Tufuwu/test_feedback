@@ -1,4 +1,4 @@
-name: CI
+name: Python package
 
 on:
   push:
@@ -9,42 +9,25 @@ on:
       - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-
+        python-version: ['3.8', '3.9', '3.10']
+        django-version: ['1.11', '2.0', '2.1', '2.2']
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        python -m venv .venv
-        source .venv/bin/activate
-        make setup
-
-    - name: Check build
-      run: |
-        source .venv/bin/activate
-        make || exit 1
-
-    - name: Lint with Flake8
-      run: |
-        source .venv/bin/activate
-        make lint || exit 1
-
-    - name: Build documentation
-      run: |
-        source .venv/bin/activate
-        make docs || exit 1
-
-    - name: Test with coverage
-      run: |
-        source .venv/bin/activate
-        make travis-test || exit 1
+        pip install -U django==${{ matrix.django-version }}
+        pip install -U typing-extensions
+        if [ "${{ matrix.python-version }}" = "3.8" ]; then pip install black; fi
+    - name: Run tests
+      run: python manage.py test
+    - name: Run Black
+      if: matrix.python-version == '3.8'
+      run: black --check zen_queries
