@@ -2,29 +2,30 @@ name: CI
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.7]
+        os: [ubuntu-22.04]
+        python-version: [3.7, 3.9]
+        h5py-version: ["==2.6", "==2.10", "==3.0", "==3.1"]
+        exclude:
+          - python-version: 3.7
+            h5py-version: "==3.0"
+          - python-version: 3.7
+            h5py-version: "==3.1"
         include:
-          - os: ubuntu-latest
-            python-version: 3.8
-            arch: x64
-          - os: ubuntu-latest
-            python-version: 3.8
-            arch: arm64
-          - os: macos-latest
-            python-version: 3.7
-            arch: x64
-          - os: windows-latest
-            python-version: 3.8
-            arch: x64
+          - os: ubuntu-22.04
+            python-version: 3.9
+            h5py-version: "==2.10"
+            arch: ppc64le
 
     steps:
     - uses: actions/checkout@v2
@@ -36,23 +37,15 @@ jobs:
 
     - name: Install dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc libhdf5-serial-dev libblas-dev liblapack-dev libatlas-base-dev libquadmath0
         python -m pip install --upgrade pip
-        pip install --upgrade pyinstaller wheel
-        pip install -r requirements.txt
+        pip install -U Cython
+        pip install -U numpy==1.19.3  # Pin numpy version to avoid compatibility issues
+        pip install h5py${{ matrix.h5py-version }}
+        pip install -r requirements_tests.txt
+        pip install .
+        pip install -e examples/example_hdf5storage_marshaller_plugin
 
-    - name: Build
-      run: |
-        cd pyinstaller && ./bundle.sh
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Upload Release Assets
-      uses: softprops/action-gh-release@v1
-      with:
-        files: deploy/*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run tests
+      run: pytest

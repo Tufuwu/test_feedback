@@ -1,17 +1,43 @@
-Session.vim
-/.venv
-/.coverage
-/etesync.db
+*.py[cod]
 
-/dist
+# C extensions
+*.so
 
-/pyinstaller/etesync-dav.spec
-/pyinstaller/build
-/pyinstaller/dist
-/pyinstaller/.venv
-
-/old
-
-__pycache__
+# Packages
+*.egg
 *.egg-info
-.*.swp
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+__pycache__
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# autosaves
+*.py~
+*.yml~
+*.rst~
+*.txt~
+*.toml~

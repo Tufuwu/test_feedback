@@ -1,4 +1,9 @@
-include LICENSE
-include README.md
-include DESCRIPTION.rst
-recursive-include etesync_dav/templates *
+include *.cfg
+include *.toml
+include *.txt
+include *.rst
+include *.py
+recursive-include tests *.py *.m *.jl
+recursive-include examples *.py *.txt *.rst *.cfg
+recursive-include doc *
+prune doc/build
