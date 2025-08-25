@@ -1,75 +1,61 @@
-name: Python application
+name: CI
 
 on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.7]
-
+        python-version: ["3.8", "3.9"]
+        include:
+          - python-version: "3.8"
+            env: TOXENV=coverage,mypy,style,docs,dist-test
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: |
-        pip install flake8 Flask==1.1.1
-        pip install -e .
-        flake8 .
-
+        pip install ".[build]"
+        pip install tox
     - name: Run tests
+      run: tox
+    - name: Run coveralls
+      if: env.TOXENV == 'coverage,mypy,style,docs,dist-test'
+      run: coveralls
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: pip install ".[build]"
+    - name: Build package
+      run: python setup.py sdist bdist_wheel
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        cd tests/example_app
-        export FLASK_APP=example.app
-
-        ls -laR example/static/ | wc -l \
-        | grep -q "26" \
-        && (echo "File count before compiling test: pass" && exit 0) \
-        || (echo "File count before compiling test: fail" && exit 1)
-
-        flask digest compile \
-        && ls -laR example/static/ | wc -l \
-        | grep -q "36" \
-        && (echo "File count after compiling test: pass" && exit 0) \
-        || (echo "File count after compiling test: fail" && exit 1)
-
-        grep -q "js/modules/hello.js" example/static/cache_manifest.json \
-        && (echo "Cache manifest has nested file test: pass" && exit 0) \
-        || (echo "Cache manifest has nested file test: fail" && exit 1)
-
-        grep -q "js/modules/hello-d41d8cd98f00b204e9800998ecf8427e.js" example/static/cache_manifest.json \
-        && (echo "Cache manifest has digested file test: pass" && exit 0) \
-        || (echo "Cache manifest has digested file test: fail" && exit 1)
-
-        flask run & \
-        sleep 5 \
-        && curl http://localhost:5000 \
-        | grep -q 'https://cdn.example.com/static/css/app-d41d8cd98f00b204e9800998ecf8427e.css' \
-        && (echo 'Stylesheet is md5 tagged test: pass' && exit 0) \
-        || (echo 'Stylesheet is md5 tagged test: fail' && exit 1)
-
-        flask digest clean \
-        && ls -laR example/static/ | wc -l \
-        | grep -q "26" \
-        && (echo "File count after cleaning test: pass" && exit 0) \
-        || (echo "File count after cleaning test: fail" && exit 1)
-
-        flask run -p 5001 & \
-        sleep 5 \
-        && curl http://localhost:5001 \
-        | grep -q 'https://cdn.example.com/static/js/app.js' \
-        && (echo 'Javascript is not md5 tagged test: pass' && exit 0) \
-        || (echo 'Javascript is not md5 tagged test: fail' && exit 1)
+        if [ "${{ github.ref }}" == "refs/heads/main" ] && [[ "${{ github.event.head_commit.message }}" == *"[release]"* ]]; then
+          twine upload dist/*
+        elif [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+        fi
