@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -13,27 +13,32 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        toxenv:
-          - pep8
-          - py3
+        python-version: ['3.8', '3.9']
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -U tox
-        pip install -U setuptools
-        pip install -U wheel  # Ensure wheel is installed
-        pip install -U importlib-metadata  # Fix for missing 'imp' module
+        pip install tox-travis codecov
 
-    - name: Run tox
-      env:
-        TOXENV: ${{ matrix.toxenv }}
+    - name: Run tests
       run: tox
+
+    - name: Upload coverage to Codecov
+      env:
+        VERSION: python_${{ matrix.python-version }}
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        codecov --required --flags $VERSION ||
+        (sleep 5 && codecov --required --flags $VERSION) ||
+        (sleep 10 && codecov --required --flags $VERSION) ||
+        (sleep 20 && codecov --required --flags $VERSION) ||
+        (sleep 30 && codecov --required --flags $VERSION)
+      continue-on-error: true
