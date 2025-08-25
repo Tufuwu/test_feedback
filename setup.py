@@ -1,52 +1,30 @@
-#!/usr/bin/env python
-
-from setuptools import find_packages, setup
-
-
-# Get version without importing, which avoids dependency issues
-def get_version():
-    import re
-
-    with open("chardet/version.py") as version_file:
-        return re.search(
-            r"""__version__\s+=\s+(['"])(?P<version>.+?)\1""", version_file.read()
-        ).group("version")
-
-
-def readme():
-    with open("README.rst") as f:
-        return f.read()
+from setuptools import setup
 
 
 setup(
-    name="chardet",
-    version=get_version(),
-    description="Universal encoding detector for Python 2 and 3",
-    long_description=readme(),
-    author="Mark Pilgrim",
-    author_email="mark@diveintomark.org",
-    maintainer="Daniel Blanchard",
-    maintainer_email="dan.blanchard@gmail.com",
-    url="https://github.com/chardet/chardet",
-    license="LGPL",
-    keywords=["encoding", "i18n", "xml"],
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: Text Processing :: Linguistic",
+    name='wtf-peewee',
+    version='3.0.1',
+    url='https://github.com/coleifer/wtf-peewee/',
+    license='MIT',
+    author='Charles Leifer',
+    author_email='coleifer@gmail.com',
+    description='WTForms integration for peewee models',
+    packages=['wtfpeewee'],
+    zip_safe=False,
+    platforms='any',
+    install_requires=[
+        'peewee>=3.0.0', 'wtforms',
     ],
-    packages=find_packages(),
-    python_requires=">=3.6",
-    entry_points={"console_scripts": ["chardetect = chardet.cli.chardetect:main"]},
+    classifiers=[
+        'Environment :: Web Environment',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Software Development :: Libraries :: Python Modules'
+    ],
+    test_suite='runtests.runtests'
 )
