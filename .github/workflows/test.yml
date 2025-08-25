@@ -1,4 +1,4 @@
-name: Python package
+name: Python application
 
 on:
   push:
@@ -11,37 +11,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: [3.7]
-
+        python-version: ["3.8", "3.9", "3.10", "3.11", "pypy-3.7"]
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libeigen3-dev
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-randomly wheel codecov
-        pip install -e .
-
+        python -m pip install --upgrade pip
+    - name: Make setconf.py executable
+      run: chmod +x ./setconf.py
+    - name: Run setconf.py
+      run: ./setconf.py --test
+    - name: Make test.sh executable
+      run: chmod +x ./testcases/test.sh
     - name: Run tests
-      run: make coverage
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      run: |
+        cd testcases && ./test.sh
