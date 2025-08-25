@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         python-version: [3.8, 3.9, 3.10]
@@ -25,8 +26,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -e .
-        pip install -r tests/requirements.txt
+        ./scripts/install_radare2.sh
+        pip install -r python/requirements_ci.txt
+        cd python && python setup.py install
 
-    - name: Test with pytest
-      run: pytest -vv
+    - name: Run tests
+      run: |
+        cd test && make tests
